@@ -3,48 +3,48 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
+from streamlit_gantt import gantt
+from datetime import timedelta
 from utils import (
-    # All functions are now fully integrated and site-aware
-    get_strategic_alignment_data, get_project_portfolio_data,
-    get_itsm_ticket_data, get_asset_inventory_data,
-    get_tech_radar_data, get_vmp_tracker_data,
-    get_audit_readiness_data,
-    get_voice_of_scientist_data, get_ai_briefing,
-    get_ai_root_cause, get_vendor_scorecards,
-    get_team_performance, get_global_kpis,
-    get_predictive_maintenance_data,
-    get_capital_asset_model_data,
-    get_project_forecast_data,
-    generate_gxp_document,
-    generate_capex_proposal,
-    run_mitigation_simulation,
-    get_self_healing_log,
-    run_strategic_financial_model,
-    get_autonomous_resource_recommendation,
-    get_living_system_file_log,
-    get_tco_data, get_automation_roi_data,
-    get_risk_adjusted_vmp_data, run_what_if_scenario,
+    # Import all new and existing functions
+    get_project_portfolio_data, get_itsm_ticket_data, get_tco_data,
+    get_predictive_maintenance_data, get_team_performance, get_global_kpis,
     get_assay_impact_data, get_reagent_genealogy_data,
     get_clinical_sample_journey, get_qms_query_result,
-    get_systemic_risk_insight
+    get_systemic_risk_insight, get_living_system_file_log,
+    get_automation_roi_data, get_risk_adjusted_vmp_data,
+    # "10+" Enhancement Functions
+    get_action_center_items, generate_weekly_briefing_text,
+    generate_capex_proposal_text, get_finops_data,
+    get_instrument_utilization_data, run_digital_twin_simulation,
+    search_audit_log, get_resource_allocation_data
 )
 
 # ==============================================================================
-# Page Configuration & Styling
+# Page Configuration & Initial State
 # ==============================================================================
 st.set_page_config(
-    page_title="DTE West Coast Lab Engineering | Vertex",
-    page_icon="🧬",
+    page_title="DTE West Coast Sentient Platform | Vertex",
+    page_icon="🚀",
     layout="wide"
 )
 
+# Initialize session state for interactive elements
+if 'action_items' not in st.session_state:
+    st.session_state.action_items = None
+if 'pred_maint_data' not in st.session_state:
+    st.session_state.pred_maint_data = get_predictive_maintenance_data()
+if 'edited_portfolio' not in st.session_state:
+    st.session_state.edited_portfolio = None
+
+
 # ==============================================================================
-# Helper Functions for Advanced, Actionable Visualizations
+# Helper Functions (Retained for completeness)
 # ==============================================================================
 def create_spc_chart(data, mttr_series):
     """Creates a Statistical Process Control (SPC) chart for MTTR."""
+    if mttr_series.empty or data.empty:
+        return go.Figure().update_layout(title_text="No Data for SPC Chart")
     mean = mttr_series.mean()
     std_dev = mttr_series.std()
     ucl = mean + (3 * std_dev)
@@ -62,6 +62,8 @@ def create_spc_chart(data, mttr_series):
 
 def create_pareto_chart(df):
     """Creates a true Pareto chart to identify the 'vital few' root causes."""
+    if df.empty:
+        return go.Figure().update_layout(title_text="No Data for Pareto Chart")
     df = df.sort_values(by='count', ascending=False)
     df['Cumulative Percentage'] = (df['count'].cumsum() / df['count'].sum()) * 100
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -76,260 +78,319 @@ def create_pareto_chart(df):
 # ==============================================================================
 @st.cache_data
 def load_all_data():
-    """Loads all data, now site-aware."""
+    """Loads all data, now including data for 10+ enhancements."""
+    portfolio_df = get_project_portfolio_data()
     tickets_df, mttr_data = get_itsm_ticket_data()
     team_perf_df, skills_gap = get_team_performance()
     data = {
-        "portfolio_df": get_project_portfolio_data(),
-        "vmp_df": get_vmp_tracker_data(),
-        "autonomous_rec": get_autonomous_resource_recommendation(),
+        "portfolio_df": portfolio_df,
         "tco_df": get_tco_data(),
-        "automation_roi": get_automation_roi_data(),
-        "risk_vmp_df": get_risk_adjusted_vmp_data(),
-        "assay_impact_df": get_assay_impact_data(),
-        "sample_journey": get_clinical_sample_journey(),
-        "systemic_risk": get_systemic_risk_insight(),
         "tickets_df": tickets_df,
         "mttr_data": mttr_data,
         "team_perf_df": team_perf_df,
         "skills_gap": skills_gap,
         "global_kpis": get_global_kpis(),
-        "predictive_maint": get_predictive_maintenance_data(),
-        "self_healing_log": get_self_healing_log(),
+        "assay_impact_df": get_assay_impact_data(),
+        "sample_journey": get_clinical_sample_journey(),
+        "systemic_risk": get_systemic_risk_insight(),
         "living_system_log": get_living_system_file_log(),
+        "automation_roi": get_automation_roi_data(),
+        "risk_vmp_df": get_risk_adjusted_vmp_data(),
+        # 10+ Enhancement Data
+        "finops_df": get_finops_data(),
+        "utilization_df": get_instrument_utilization_data(),
+        "resource_allocation_df": get_resource_allocation_data(portfolio_df),
     }
-    data["portfolio_df"] = get_project_forecast_data(data["portfolio_df"])
     return data
 
 data = load_all_data()
+# Load action items into state
+if st.session_state.action_items is None:
+    st.session_state.action_items = get_action_center_items(st.session_state.pred_maint_data)
 
 # ==============================================================================
-# Sidebar - Global Navigation & AI Advisor
+# Sidebar
 # ==============================================================================
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Vertex_Pharmaceuticals_logo.svg/2560px-Vertex_Pharmaceuticals_logo.svg.png", width=150)
-    st.title("DTE West Coast Command Center")
-    st.caption("For the Associate Director, LE&T")
+    st.title("DTE West Coast Sentient Platform")
 
-    # ROLE MAPPING: West Coast Site Lead (San Diego, Seattle)
-    site_selection = st.selectbox(
-        "Select Site View:",
-        ["West Coast (Overall)", "San Diego", "Seattle"],
-        help="Filter the entire dashboard to a specific site or view the combined West Coast."
-    )
+    site_selection = st.selectbox("Select Site View:", ["West Coast (Overall)", "San Diego", "Seattle"])
 
     page = st.radio(
         "Navigation",
-        ["📈 **Strategic Hub**", "💼 **Financial Intelligence**", "🔬 **Scientific Impact**", "⚙️ **Operational Excellence**", "📋 **GxP & Compliance**", "👥 **Leadership & Alignment**"],
+        ["🏠 **Home Cockpit**",
+         "📈 **Interactive Portfolio Modeler**",
+         "💼 **Financial Intelligence & FinOps**",
+         "🔬 **Scientific & Lab Operations**",
+         "⚙️ **Autonomous Operations**",
+         "📋 **GxP & Audit Readiness**",
+         "👥 **Leadership & Resource Planning**"],
         label_visibility="collapsed"
     )
-
     st.divider()
 
+    # --- Enhancement #1: Action Center & Approval Workflow ---
+    pending_items = [item for item in st.session_state.action_items if item['status'] == 'Pending']
+    st.header(f"Action Center ({len(pending_items)})")
+    if not pending_items:
+        st.success("No pending approvals.")
+    else:
+        for item in pending_items:
+            with st.expander(f"📌 {item['type']}: {item['id']}"):
+                st.write(item['description'])
+                c1, c2 = st.columns(2)
+                if c1.button("✅ Approve", key=f"app_{item['id']}", use_container_width=True):
+                    item['status'] = 'Approved'
+                    st.success(f"Approved: {item['id']}")
+                    st.rerun()
+                if c2.button("❌ Reject", key=f"rej_{item['id']}", use_container_width=True):
+                    item['status'] = 'Rejected'
+                    st.warning(f"Rejected: {item['id']}")
+                    st.rerun()
+    st.divider()
+
+    # --- Enhancement #2: "Generate Weekly Briefing" AI Agent ---
     st.header("🤖 AI Strategic Advisor")
-    st.caption("Your integrated partner for synthesis, drafting, and querying.")
-
-    # ROLE MAPPING: Partnering with scientists, QMS, strategic documents
-    with st.expander("Natural Language QMS Query"):
-        qms_query = st.text_input("Ask a question of the QMS...", f"Show open CAPAs for GxP software at {site_selection}.")
-        if st.button("Query QMS", key="qms_query"):
-            with st.spinner("Querying Quality Management System..."):
-                st.dataframe(get_qms_query_result(qms_query))
-
-    with st.container(border=True):
-        st.markdown("🚨 **AI-Generated Systemic Risk Insight**")
-        risk = data["systemic_risk"]
-        st.error(f"**{risk['title']}**\n\n{risk['insight']}", icon="🔥")
-        st.info(f"**Recommendation:** {risk['recommendation']}")
+    with st.expander("Generate Weekly Briefing"):
+        if st.button("🚀 Generate Briefing for Leadership", type="primary"):
+            with st.spinner("AI is synthesizing data from all modules..."):
+                briefing_text = generate_weekly_briefing_text(site_selection if site_selection != "West Coast (Overall)" else "San Diego", data)
+                st.session_state.briefing = briefing_text
+        if 'briefing' in st.session_state:
+            st.text_area("Generated Briefing:", st.session_state.briefing, height=200)
+            st.download_button("Download as .txt", st.session_state.briefing, "weekly_briefing.txt")
 
 # ==============================================================================
-# Site-Specific Data Filtering
+# Site-Specific Data Filtering (Helper)
 # ==============================================================================
 def filter_df_by_site(df, site_col='Site'):
     if site_selection != "West Coast (Overall)" and site_col in df.columns:
-        return df[df[site_col] == site_selection]
-    return df
-
-portfolio_df = filter_df_by_site(data["portfolio_df"])
-tco_df = filter_df_by_site(data["tco_df"])
-risk_vmp_df = filter_df_by_site(data["risk_vmp_df"])
-tickets_df = filter_df_by_site(data["tickets_df"])
-predictive_maint = filter_df_by_site(data["predictive_maint"])
-team_perf_df = filter_df_by_site(data["team_perf_df"])
-self_healing_log = filter_df_by_site(data["self_healing_log"])
+        return df[df[site_col] == site_selection].copy()
+    return df.copy()
 
 # ==============================================================================
-# Main Content Area - Render selected page
+# Page Implementations
 # ==============================================================================
-if page == "📈 **Strategic Hub**":
-    # ROLE MAPPING: Vision & Strategy, Aligning local tech with site strategy
-    st.header(f"📈 Strategic Hub: Vision & Orchestration for **{site_selection}**")
-    st.caption("Aligning local technology delivery with site strategy, ensuring DTE powers Vertex medicine discovery and development.")
-
-    col1, col2, col3, col4 = st.columns(4)
-    # Metrics are now dynamic based on filtered data
-    health_score = portfolio_df['Health Score (%)'].mean() if not portfolio_df.empty else 100
-    col1.metric("Portfolio Health Score (Avg)", f"{health_score:.0f}%")
-    col2.metric("Projects At Risk", portfolio_df[portfolio_df['Status'] == 'At Risk'].shape[0])
-    col3.metric("GxP Compliance State", "Continuous")
-    col4.metric("Pending Leadership Decisions", "3")
+if page == "🏠 **Home Cockpit**":
+    st.header(f"🏠 Home Cockpit for **{site_selection}**")
+    st.caption("A high-level summary of all strategic and operational domains.")
+    
+    col1, col2, col3 = st.columns(3)
+    portfolio_df_filtered = filter_df_by_site(data["portfolio_df"])
+    col1.metric("Active Projects", portfolio_df_filtered.shape[0])
+    col2.metric("Projects At Risk", portfolio_df_filtered[portfolio_df_filtered['Status'] == 'At Risk'].shape[0])
+    col3.metric("Pending Approvals", len(pending_items))
+    
     st.divider()
-
-    st.subheader("Autonomous Resource & Portfolio Orchestration")
-    # ROLE MAPPING: Matrix leadership, Executing strategic plans
-    st.markdown("When the system detects a project is at risk, it autonomously generates the optimal resource recommendation. This is **matrix leadership** in action, ensuring projects are completed on time.")
-    rec = data["autonomous_rec"]
-    st.error(f"**Project At Risk:** The **{rec['project']}** project at **{rec['site']}** has a health score of **{rec['health_score']}%**.", icon="🚨")
-    st.info(f"**Autonomous Recommendation:** Temporarily allocate **{rec['recommended_resource']}** from **{rec['resource_location']}** for **{rec['duration']}**. This action is predicted to bring the project **back on track** with a **{rec['confidence']}%** confidence level.")
-    st.dataframe(portfolio_df, use_container_width=True, hide_index=True)
+    st.subheader("Systemic Risk Insights")
+    risk = data["systemic_risk"]
+    st.error(f"**{risk['title']}**\n\n{risk['insight']}", icon="🔥")
+    st.info(f"**Recommendation:** {risk['recommendation']}")
+    st.info("Welcome to the Sentient Platform. Use the navigation on the left to dive into specific domains.")
 
 
-elif page == "💼 **Financial Intelligence**":
-    # ROLE MAPPING: Vendor relationship management, TCO, Budgeting
-    st.header(f"💼 Financial Intelligence & Vendor Management for **{site_selection}**")
-    st.caption("This module moves from managing assets to managing a financial portfolio of technology, framing every decision in terms of ROI, TCO, and risk-adjusted value.")
+elif page == "📈 **Interactive Portfolio Modeler**":
+    st.header("📈 Interactive Portfolio Modeler")
+    st.caption("Simulate project delays to instantly see downstream impacts on dependencies and timelines.")
+    portfolio_df = filter_df_by_site(data["portfolio_df"])
+    
+    if st.session_state.edited_portfolio is None or st.button('Reset Simulation'):
+        st.session_state.edited_portfolio = portfolio_df.copy()
 
-    st.subheader("Total Cost of Ownership (TCO) Dashboard for GxP Assets")
-    st.markdown("Instantly reveals 'value drains'—high TCO with low reliability—providing clear targets for replacement at your site.")
-    fig_tco = px.treemap(tco_df, path=[px.Constant(site_selection), 'Asset Type', 'Asset ID'], values='TCO ($k)',
-                  color='Uptime (%)', hover_data=['Maintenance Costs ($k)'],
-                  color_continuous_scale='RdYlGn',
-                  title=f'Asset TCO Treemap for {site_selection} (Size = Cost, Color = Reliability)')
-    st.plotly_chart(fig_tco, use_container_width=True)
+    st.info("Select a project to simulate a delay and see the calculated impact on dependent tasks.")
+    
+    col1, col2 = st.columns([2,1])
+    with col1:
+        selected_task = st.selectbox("Select Project to Delay:", options=st.session_state.edited_portfolio['Task'])
+    with col2:
+        delay_weeks = st.slider("Delay (Weeks):", 0, 12, 0)
 
-    st.divider()
+    if delay_weeks > 0:
+        temp_df = st.session_state.edited_portfolio.copy()
+        task_idx = temp_df.index[temp_df['Task'] == selected_task][0]
+        
+        # Apply delay
+        original_finish = temp_df.loc[task_idx, 'Finish']
+        temp_df.loc[task_idx, 'Finish'] += timedelta(weeks=delay_weeks)
+        
+        # Check for dependency impact
+        dependency_impacted = temp_df[temp_df['Dependencies'] == selected_task]
+        if not dependency_impacted.empty:
+            impacted_task_name = dependency_impacted.iloc[0]['Task']
+            st.error(f"**Impact Alert!** Delaying '{selected_task}' will directly impact the start date of **'{impacted_task_name}'**.")
 
-    st.subheader("Automation Program ROI & Vendor Performance")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Automation ROI Tracker**")
-        fig_roi = go.Figure()
-        fig_roi.add_trace(go.Scatter(x=data["automation_roi"]['Month'], y=data["automation_roi"]['Cumulative Value ($k)'], fill='tozeroy', name='Value Realized'))
-        fig_roi.add_hline(y=0, line_dash="dash")
-        fig_roi.add_annotation(x=4, y=5, text="Break-Even Point", showarrow=True)
-        fig_roi.update_layout(title="Automation Program: Cumulative Value Realization")
-        st.plotly_chart(fig_roi, use_container_width=True)
-    with c2:
-        st.markdown("**Vendor Spend vs. Performance**")
-        # ROLE MAPPING: Manage vendor relationships
-        vendor_df = pd.DataFrame(get_vendor_scorecards()).T.reset_index().rename(columns={'index':'Vendor'})
-        fig_vendor = px.scatter(vendor_df, x='annual_spend_k', y='performance_score', size='incidents', color='Vendor', hover_name='Vendor', title='Vendor Spend vs. Performance Score')
-        st.plotly_chart(fig_vendor, use_container_width=True)
+        # Display Gantt Chart
+        gantt_df = temp_df.rename(columns={"Task": "task", "Start": "start", "Finish": "finish"})
+        gantt("Project Portfolio Gantt", gantt_df, color_by='Site')
+    else:
+        gantt_df = st.session_state.edited_portfolio.rename(columns={"Task": "task", "Start": "start", "Finish": "finish"})
+        gantt("Project Portfolio Gantt", gantt_df, color_by='Site')
 
-elif page == "🔬 **Scientific Impact**":
-    # ROLE MAPPING: Collaboration with scientists, proficiency in lab instrumentation and software.
-    st.header(f"🔬 Scientific Impact & Data Fusion at **{site_selection}**")
-    st.caption("Breaking down silos to answer: 'How is our technology performance directly impacting the speed and quality of Vertex's science at this site?'")
 
-    st.subheader("Clinical Sample Journey Tracker")
-    st.markdown("An end-to-end traceability view for a single sample, invaluable for deep OOS investigations. A core function for supporting science.")
-    sample_id = st.text_input("Enter a Clinical Sample ID:", "CL-2024-00123")
-    st.dataframe(data["sample_journey"], use_container_width=True, hide_index=True)
+elif page == "💼 **Financial Intelligence & FinOps**":
+    st.header(f"💼 Financial Intelligence & FinOps for **{site_selection}**")
+    tco_df = filter_df_by_site(data["tco_df"])
 
-    st.divider()
+    tab1, tab2 = st.tabs(["Asset TCO & CapEx", "Cloud FinOps"])
 
-    st.subheader("Assay & Reagent Impact Analysis")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Instrument-to-Assay Impact View**")
-        # ROLE MAPPING: Understanding high-throughput labs and diagnostic tech
+    with tab1:
+        st.subheader("Asset TCO & CapEx Proposal Generator")
+        fig_tco = px.treemap(tco_df, path=[px.Constant(site_selection), 'Asset Type', 'Asset ID'],
+                             values='TCO ($k)', color='Uptime (%)',
+                             color_continuous_scale='RdYlGn', title='Asset TCO Treemap (Size=Cost, Color=Reliability)')
+        st.plotly_chart(fig_tco, use_container_width=True)
+
+        st.info("Select a poorly performing asset to auto-generate a CapEx proposal.")
+        selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=tco_df['Asset ID'])
+        if st.button("🤖 Generate CapEx Proposal", type="primary"):
+            asset_details = tco_df[tco_df['Asset ID'] == selected_asset_id].iloc[0]
+            with st.spinner(f"AI is drafting a proposal for {selected_asset_id}..."):
+                proposal_text = generate_capex_proposal_text(asset_details)
+                st.session_state.proposal = proposal_text
+        if 'proposal' in st.session_state:
+            st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
+            st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
+
+    with tab2:
+        st.subheader("Cloud Cost (FinOps) Dashboard")
+        finops_df = data['finops_df']
+        fig_cost = px.area(finops_df, x='Date', y='Cost ($)', color='Project', title='Cloud Spend Over Time by Project')
+        st.plotly_chart(fig_cost, use_container_width=True)
+        st.info("**AI Insight:** 'AI Drug Discovery' project spend is forecast to increase by 30% next month. Consider reserving instances to optimize cost.")
+        st.dataframe(finops_df.groupby('Service')['Cost ($)'].sum().reset_index(), use_container_width=True)
+
+
+elif page == "🔬 **Scientific & Lab Operations**":
+    st.header(f"🔬 Scientific & Lab Operations at **{site_selection}**")
+    tab1, tab2 = st.tabs(["Instrument Utilization", "Scientific Impact Analysis"])
+
+    with tab1:
+        st.subheader("Live Instrument Utilization")
+        util_df = filter_df_by_site(data["utilization_df"])
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**Current Instrument Status**")
+            st.dataframe(util_df[['Instrument', 'Status']], use_container_width=True, hide_index=True)
+        with c2:
+            st.markdown("**Utilization (Last 7 Days)**")
+            fig_util = px.bar(util_df, x='Instrument', y='Utilization (Last 7 Days %)', color='Instrument', title="Instrument Utilization")
+            fig_util.update_yaxes(range=[0, 100])
+            st.plotly_chart(fig_util, use_container_width=True)
+    
+    with tab2:
+        st.subheader("Reagent & Assay Impact Analysis")
+        st.graphviz_chart(get_reagent_genealogy_data("R-45B-XYZ"))
         assay_data = data["assay_impact_df"]
-        fig = go.Figure(data=[go.Sankey(
+        fig_sankey = go.Figure(data=[go.Sankey(
             node = dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=assay_data['labels'], color=assay_data['colors']),
             link = dict(source=assay_data['sources'], target=assay_data['targets'], value=assay_data['values'])
         )])
-        fig.update_layout(title_text="Instrument -> Assay -> Project Dependency Flow", font_size=10)
-        st.plotly_chart(fig, use_container_width=True)
-    with c2:
-        st.markdown("**Reagent Lot Genealogy**")
-        reagent_lot = st.text_input("Enter Problematic Reagent Lot ID:", "R-45B-XYZ")
-        st.graphviz_chart(get_reagent_genealogy_data(reagent_lot))
+        fig_sankey.update_layout(title_text="Instrument -> Assay -> Project Dependency Flow", font_size=10)
+        st.plotly_chart(fig_sankey, use_container_width=True)
 
-elif page == "⚙️ **Operational Excellence**":
-    # ROLE MAPPING: Operational Execution, ITIL, Troubleshooting, Process Automation
-    st.header(f"⚙️ Predictive & Autonomous Operations for **{site_selection}**")
-    st.caption("Evolving from reactive fixes to an intelligent, predictive, and autonomous engine for lab technology reliability and efficiency.")
 
-    st.subheader("Predictive Maintenance Scheduler")
-    st.markdown("The ML model's prediction automatically creates a provisional work order and pencils-in a PM on the instrument schedule, preventing downtime.")
-    st.dataframe(predictive_maint.style.highlight_max(subset=['Predicted Failure Risk (%)'], color='lightcoral'), use_container_width=True, hide_index=True)
+elif page == "⚙️ **Autonomous Operations**":
+    st.header(f"⚙️ Autonomous Operations for **{site_selection}**")
+    pred_maint_df_filtered = filter_df_by_site(st.session_state.pred_maint_data)
 
-    st.subheader("Autonomous Reliability Log")
-    st.markdown("A real-time log of issues the platform has detected and resolved autonomously, showcasing proactive issue resolution.")
-    st.dataframe(self_healing_log, use_container_width=True, hide_index=True)
+    tab1, tab2 = st.tabs(["Predictive Maintenance & Work Orders", "GxP Change Simulation"])
 
-    st.divider()
+    with tab1:
+        st.subheader("Predictive Maintenance with Work Order Integration")
+        st.info("Assets needing approval appear in the Action Center. Once approved, you can create a work order.")
+        
+        # Display the dataframe with integrated button logic
+        df_to_display = pred_maint_df_filtered.copy()
+        
+        for idx, row in df_to_display.iterrows():
+            item_id = f"pm_{row['Asset ID']}"
+            action_item = next((item for item in st.session_state.action_items if item['id'] == item_id), None)
+            
+            if action_item and action_item['status'] == 'Approved' and row['Status'] != 'Work Order Created':
+                if st.button(f"Create Work Order for {row['Asset ID']}", key=f"wo_{row['Asset ID']}"):
+                    st.session_state.pred_maint_data.loc[idx, 'Status'] = 'Work Order Created'
+                    st.success(f"Work Order #WO12345 created in ServiceNow for {row['Asset ID']}.")
+                    st.rerun()
 
-    st.subheader("Service Stability & Problem Management (ITIL)")
-    # ROLE MAPPING: IT Service Management & ITIL
-    incidents_filtered = tickets_df[tickets_df['Type'] == 'Incident']
-    incident_categories = incidents_filtered['Category'].value_counts().reset_index(name='count')
-    ticket_counts_by_date = tickets_df.groupby(tickets_df['Date'].dt.date).size().reset_index(name='Ticket Count').set_index('Date')
+        st.dataframe(df_to_display.style.highlight_max(subset=['Predicted Failure Risk (%)'], color='lightcoral'), use_container_width=True, hide_index=True)
+
+    with tab2:
+        st.subheader("Digital Twin for GxP Change Simulation")
+        st.info("Simulate the impact of a software change on a critical GxP system before deployment.")
+        change_desc = st.text_input("Describe the change for simulation:", "Apply security patch KB5034122 to LIMS-PROD server")
+        if st.button("🚀 Run Simulation in Digital Twin", type="primary"):
+            with st.spinner("Simulation in progress..."):
+                result = run_digital_twin_simulation(change_desc)
+                st.session_state.sim_result = result
+        
+        if 'sim_result' in st.session_state:
+            st.markdown(f"**Simulation Complete!**")
+            st.metric("Assessed Risk Level", st.session_state.sim_result['risk'])
+            st.text_area("Simulation Impact Report", st.session_state.sim_result['impact'], height=150)
+
+
+elif page == "📋 **GxP & Audit Readiness**":
+    st.header(f"📋 GxP & Audit Readiness for **{site_selection}**")
+    living_log_df = data['living_system_log']
     
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Incident Pareto Analysis**")
-        st.plotly_chart(create_pareto_chart(incident_categories), use_container_width=True)
-    with c2:
-        st.markdown("**Service Stability SPC Chart**")
-        st.plotly_chart(create_spc_chart(ticket_counts_by_date, data["mttr_data"]), use_container_width=True)
+    st.subheader("Interactive Audit Trail Navigator (21 CFR Part 11)")
+    query = st.text_input("Search the audit trail (e.g., \"Show actions by user 'davis_c' on LIMS-PROD\")", help="Search by user or system name.")
+    
+    if query:
+        with st.spinner("Searching secure log..."):
+            results_df = search_audit_log(living_log_df, query)
+    else:
+        results_df = living_log_df
 
-
-elif page == "📋 **GxP & Compliance**":
-    # ROLE MAPPING: GxP, Audit Readiness, 21 CFR Part 11, Validation, Regulatory Standards
-    st.header(f"📋 Generative GxP & Continuous Validation for **{site_selection}**")
-    st.caption("Leveraging AI to accelerate the validation lifecycle and provide a 'Living' system file for ultimate audit readiness and 21 CFR Part 11 compliance.")
-
-    st.subheader("Risk-Adjusted Validation Scheduling (VMP)")
-    st.markdown("The VMP is prioritized not just by date, but by a **Validation Risk Score** that combines GxP criticality with system age and incident history.")
+    st.dataframe(results_df, use_container_width=True, hide_index=True)
+    st.divider()
+    
+    st.subheader("Risk-Adjusted Validation Master Plan")
+    risk_vmp_df_filtered = filter_df_by_site(data["risk_vmp_df"])
     fig_risk_vmp = px.scatter(
-        risk_vmp_df, x="Days Until Due", y="System Criticality",
+        risk_vmp_df_filtered, x="Days Until Due", y="System Criticality",
         size="Validation Effort (Hours)", color="Status", hover_name="System/Instrument",
         title=f"Risk-Adjusted Validation Priority Matrix for {site_selection}", size_max=50
     )
     st.plotly_chart(fig_risk_vmp, use_container_width=True)
+
+
+elif page == "👥 **Leadership & Resource Planning**":
+    st.header(f"👥 Leadership & Resource Planning for **{site_selection}**")
+    tab1, tab2 = st.tabs(["Resource Allocation Heatmap", "Team Skills & KPIs"])
     
-    st.divider()
+    with tab1:
+        st.subheader("Matrix Resource Allocation Heatmap")
+        st.info("Forecasted workload for each team member across all projects. Red indicates potential over-allocation (>100%).")
+        heatmap_df = data['resource_allocation_df']
+        fig_heatmap = go.Figure(data=go.Heatmap(
+            z=heatmap_df.values,
+            x=heatmap_df.columns,
+            y=heatmap_df.index,
+            colorscale='RdYlGn_r'
+        ))
+        fig_heatmap.update_layout(title='Resource Allocation Forecast (%)')
+        st.plotly_chart(fig_heatmap, use_container_width=True)
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.subheader("Generative AI V&V Report Drafter")
-        st.markdown("After a validation is complete, the AI can automatically generate the narrative for the final validation report, accelerating a key GxP process.")
-        vmp_completed = data["vmp_df"][data["vmp_df"]['Status'] == 'Completed']
-        selected_report = st.selectbox("Select Completed Validation to Draft Report:", vmp_completed['System/Instrument'].unique())
-        if st.button("🤖 Draft Validation Summary Report", key="draft_vsr", type="primary"):
-            st.info("Draft VSR generated and saved to the document management system for review.", icon="📄")
-    with c2:
-        st.subheader("Living System File Log (21 CFR Part 11)")
-        st.markdown("A verifiable, timestamped log of all significant events for a GxP system, demonstrating data integrity and providing a core audit artifact.")
-        st.dataframe(data["living_system_log"], use_container_width=True, hide_index=True)
+    with tab2:
+        st.subheader("Team Skills & Performance")
+        team_perf_df_filtered = filter_df_by_site(data['team_perf_df'])
+        
+        st.markdown("**Team Skills & Training Matrix**")
+        st.dataframe(team_perf_df_filtered.style.applymap(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else ''), use_container_width=True, hide_index=True)
 
-
-elif page == "👥 **Leadership & Alignment**":
-    # ROLE MAPPING: Leadership, Managing teams, Matrix leadership, KPIs, Fostering high performance
-    st.header(f"👥 Leadership & Global Alignment for **{site_selection}**")
-    st.caption("Managing team performance, qualifications (GxP), and ensuring West Coast execution is aligned with global DTE standards.")
-
-    with st.container(border=True):
-        st.subheader("Team Performance & Development Hub")
-        # BUG FIX: Added the column definitions that were missing.
-        col1, col2 = st.columns([1.5, 1])
-        with col1:
-            st.markdown(f"**Team Skills & Training Matrix ({site_selection})**")
-            st.dataframe(team_perf_df.style.applymap(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else ''), use_container_width=True, hide_index=True)
-        with col2:
-            st.markdown("**AI-Identified Skill Gap**")
-            st.warning(f"**GAP:** {data['skills_gap']['gap']}\n\n**Recommendation:** {data['skills_gap']['recommendation']}")
-
-    with st.container(border=True):
-        st.subheader("Matrix Leadership: Site vs. Global Alignment")
-        # BUG FIX: Added the column definitions that were missing.
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"**{site_selection} vs. Global KPI Benchmark**")
-            # ROLE MAPPING: Monitor and report on project performance using key performance indicators (KPIs)
-            for _, row in data["global_kpis"].iterrows():
-                site_value = row[site_selection] if site_selection != "West Coast (Overall)" else row[['San Diego', 'Seattle']].mean()
+        st.markdown("**AI-Identified Skill Gap**")
+        st.warning(f"**GAP:** {data['skills_gap']['gap']}\n\n**Recommendation:** {data['skills_gap']['recommendation']}")
+        
+        st.divider()
+        st.subheader("Site vs. Global KPI Benchmark")
+        global_kpis = data["global_kpis"]
+        
+        if site_selection != "West Coast (Overall)":
+            for _, row in global_kpis.iterrows():
+                site_value = row[site_selection]
                 delta_val = site_value - row['Global Avg']
                 st.metric(
                     label=f"{row['KPI']}",
@@ -337,6 +398,3 @@ elif page == "👥 **Leadership & Alignment**":
                     delta=f"{delta_val:.1f}{row.get('unit','')}",
                     help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}"
                 )
-        with col2:
-            st.markdown("**Global Best Practice (Autonomous Action)**")
-            st.success("**New Best Practice Deployed:**\n- **Issue:** 'Lab Printer Offline' incidents globally.\n- **Origin:** Boston DTE's proactive ping script.\n- **Action:** This practice has been autonomously tested and deployed to the West Coast monitoring system.")
