@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 from datetime import date, timedelta, datetime
+import graphviz # NEW IMPORT for digital graph generation
 
 # ==============================================================================
 # --- Base Data Simulation Functions ---
@@ -68,11 +69,7 @@ def get_ai_root_cause(problem_description):
     
 def get_vendor_scorecards():
     """Simulates performance data for key technology vendors."""
-    return {
-        "Agilent Technologies": {"annual_spend_k": 850, "performance_score": 88, "incidents": 12},
-        "Illumina": {"annual_spend_k": 1200, "performance_score": 95, "incidents": 5},
-        "Hamilton": {"annual_spend_k": 400, "performance_score": 92, "incidents": 8}
-    }
+    return {"Agilent Technologies": {"annual_spend_k": 850, "performance_score": 88, "incidents": 12}, "Illumina": {"annual_spend_k": 1200, "performance_score": 95, "incidents": 5}, "Hamilton": {"annual_spend_k": 400, "performance_score": 92, "incidents": 8}}
 
 def get_team_performance():
     """Simulates data for the team skills matrix and identified gaps."""
@@ -153,36 +150,45 @@ def run_what_if_scenario(query):
 def get_assay_impact_data():
     """Simulates data for the instrument-to-assay Sankey diagram."""
     # This dictionary now has lists of equal length.
-    data_dict = {
-        'source': [0, 1, 1, 2, 3, 4, 5],
-        'target': [3, 4, 5, 6, 6, 7, 7],
-        'value':  [10, 5, 5, 8, 10, 5, 8],
-        'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"],
-        'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"]
+    return {
+        'sources': [0, 1, 1, 2, 3, 4, 5],
+        'targets': [3, 4, 5, 6, 6, 7, 7],
+        'values':  [10, 5, 5, 8, 10, 5, 8],
+        'labels': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"],
+        'colors': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"]
     }
-    # To use Sankey, we need a flat list of all unique sources and targets for the labels.
-    # The length of source, target, and value must be equal.
-    sankey_data = {
-        'source': data_dict['source'],
-        'target': data_dict['target'],
-        'value': data_dict['value'],
-    }
-    
-    # We will pass the full labels and colors, but the plotting logic will use them based on node indices.
-    # It's better to pass the labels/colors separately to the plotting function.
-    # For this simulation, we will combine them into one DataFrame. The app.py will need to handle this.
-    # A simplified approach for the simulation:
-    return pd.DataFrame({
-        'label': data_dict['label'],
-        'color': data_dict['color'],
-        'source': data_dict['source'] + [0], # Pad to match length
-        'target': data_dict['target'] + [0], # Pad to match length
-        'value': data_dict['value'] + [0] # Pad to match length
-    })
 
-def get_reagent_genealogy_data():
-    """Returns a path to a pre-made image for the genealogy graph."""
-    return "https://i.imgur.com/U3v5G2d.png"
+# --- NEW DIGITALLY GENERATED GRAPH ---
+def get_reagent_genealogy_data(reagent_lot_id):
+    """Generates a Graphviz chart object for the reagent genealogy."""
+    dot = graphviz.Digraph(comment='Reagent Lot Genealogy')
+    dot.attr('node', shape='box', style='rounded,filled')
+
+    # Central Node
+    dot.node('lot', f'Problem Lot\n{reagent_lot_id}', fillcolor='red', fontcolor='white')
+
+    # Affected Runs
+    dot.node('run1', 'NGS Run 240510-A')
+    dot.node('run2', 'HTS Run 240511-C')
+    dot.edge('lot', 'run1')
+    dot.edge('lot', 'run2')
+
+    # Affected Plates
+    dot.node('plate1', 'Plate P123')
+    dot.node('plate2', 'Plate P124')
+    dot.node('plate3', 'Plate P201')
+    dot.edge('run1', 'plate1')
+    dot.edge('run1', 'plate2')
+    dot.edge('run2', 'plate3')
+
+    # Affected Projects
+    dot.node('proj1', "Project 'VT-101'", fillcolor='purple', fontcolor='white')
+    dot.node('proj2', "Project 'VT-315'", fillcolor='purple', fontcolor='white')
+    dot.edge('plate1', 'proj1')
+    dot.edge('plate2', 'proj1')
+    dot.edge('plate3', 'proj2')
+    
+    return dot
 
 def get_clinical_sample_journey():
     """Simulates the journey of a single clinical sample."""
