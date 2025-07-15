@@ -28,7 +28,7 @@ def generate_weekly_briefing_text(site, data):
     at_risk_projects = portfolio_df[portfolio_df['Status'] == 'At Risk'].shape[0]
     accomplishments = "- **Project Advancement:** 'LIMS Upgrade' project health score improved from 45% to 65% after resource allocation.\n- **Operational Stability:** Maintained 99.8% uptime across all critical lab systems."
     risks = f"- **Systemic Vendor Risk:** Continue to monitor 'ACME Reagents' performance as per active QMS insight.\n- **Project Risk:** {at_risk_projects} project(s) currently classified as 'At Risk'. See portfolio for details."
-    
+
     kpi_summary = "KPI Data Not Available"
     if site in data['global_kpis'].columns:
         kpi_summary = f"- **System Uptime:** {data['global_kpis'].loc[0, site]:.1f}% (Global: {data['global_kpis'].loc[0, 'Global Avg']}%)\n- **MTTR (P1 Incidents):** {data['global_kpis'].loc[1, site]:.1f}h (Global: {data['global_kpis'].loc[1, 'Global Avg']}h)"
@@ -130,7 +130,7 @@ def search_audit_log(log_df, query):
             user = query.split("user")[-1].split("'")[1].strip()
             filtered_df = filtered_df[filtered_df['User/Process'].str.contains(user, case=False)]
         except IndexError:
-            pass # Handle cases where query format is unexpected
+            pass
     if "system" in query:
         try:
             system = query.split("system")[-1].strip().upper().split(" ")[0]
