@@ -185,7 +185,7 @@ if page == "🏠 **Home Cockpit**":
         st.metric(
             label="💵 Financial Velocity",
             value=f"{spend/budget:.1%}",
-            help=f"**Financial Velocity** measures the project portfolio's budget burn rate (${spend:,.0f}k of ${budget:,.0f}k). This KPI helps determine if spending is aligned with project timelines. A low velocity might indicate stalled projects, while a high velocity could signal a risk of budget overrun."
+            help=f"Percentage of total project budget spent (${spend:,.0f}k of ${budget:,.0f}k). Monitors burn rate against project timelines. A low velocity might indicate stalled projects, while a high velocity could signal a risk of budget overrun."
         )
         st.progress(spend/budget)
 
@@ -258,14 +258,30 @@ elif page == "💼 **Financial Intelligence & FinOps**":
     st.plotly_chart(fig_quad, use_container_width=True)
     
     with st.expander("🤖 Generate CapEx Proposal for a 'Value Drain' Asset"):
-        # CapEx Generator logic...
         st.write("Select an asset (ideally from the 'Value Drains' quadrant) to automatically generate a data-driven replacement proposal.")
+        if not tco_df_filtered.empty:
+            selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=tco_df_filtered['Asset ID'], key="capex_asset")
+            if st.button("🤖 Generate CapEx Proposal", type="primary"):
+                asset_details = tco_df_filtered[tco_df_filtered['Asset ID'] == selected_asset_id].iloc[0]
+                with st.spinner(f"AI is drafting a proposal for {selected_asset_id}..."):
+                    st.session_state.proposal = generate_capex_proposal_text(asset_details)
+            if 'proposal' in st.session_state:
+                st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
+                st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
+        else:
+            st.warning("No assets to display for the selected site.")
 
     st.divider()
     st.subheader("Cloud FinOps: Cost Optimization & Forecasting")
     st.caption("As scientific computing moves to the cloud, managing this variable spend is critical. This dashboard provides visibility into cloud costs by project and service, enabling you to identify waste and optimize spend.")
     finops_df = data['finops_df']
-    # ... FinOps logic and plots ...
+    cost_kpi1, cost_kpi2 = st.columns(2)
+    wasted_spend = finops_df[finops_df['Service'].isin(['EC2 (Compute)', 'S3 (Storage)']) ]['Cost ($)'].sum() * 0.15
+    cost_kpi1.metric("Cloud Spend (Last 90d)", f"${finops_df['Cost ($)'].sum():,.0f}")
+    cost_kpi2.metric("Est. Wasted Spend", f"${wasted_spend:,.0f}", help="Estimated cost of idle or over-provisioned resources. Target for optimization.")
+    
+    fig_cost = px.area(finops_df, x='Date', y='Cost ($)', color='Project', title='Cloud Spend Over Time by Project')
+    st.plotly_chart(fig_cost, use_container_width=True)
 
 elif page == "🔬 **Scientific & Lab Operations**":
     st.header(f"🔬 Scientific & Lab Operations at **{site_selection}**")
@@ -290,14 +306,32 @@ elif page == "⚙️ **Autonomous Operations**":
     st.subheader("Reliability & Maintenance KPIs")
     st.caption("These KPIs measure the effectiveness of your maintenance strategy and the overall reliability of your lab technology. An upward trend in MTBF and an increasing number of avoided downtimes demonstrate a successful shift from reactive firefighting to proactive, predictive maintenance.")
     op_kpi1, op_kpi2 = st.columns(2)
-    # ... KPI logic ...
+    pred_maint_df = data['pred_maint_data']
+    op_kpi1.metric("Downtime Events Avoided (YTD)", int(pred_maint_df['Downtime Avoided (Hours)'].sum() / 8), help="Number of major downtime events (assuming 8 hours/event) prevented by predictive maintenance.")
+
+    mtbf_df = data['mtbf_df']
+    last_mtbf = mtbf_df['MTBF (Hours)'].iloc[-1]
+    prev_mtbf = mtbf_df['MTBF (Hours)'].iloc[-2]
+    op_kpi2.metric("Mean Time Between Failures (MTBF)", f"{last_mtbf:.0f} Hours", delta=f"{last_mtbf - prev_mtbf:.0f}h vs last month")
+
     fig_mtbf = px.line(data['mtbf_df'], x='Month', y='MTBF (Hours)', title='Mean Time Between Failures (MTBF) Trend', markers=True)
     fig_mtbf.update_layout(yaxis_title="MTBF (Hours)", legend_title_text=None)
     st.plotly_chart(fig_mtbf, use_container_width=True)
 
     with st.expander("Predictive Maintenance Workflow & Digital Twin Simulation"):
         st.info("The tools below allow you to action the insights from the reliability KPIs.")
-        # ... PM and Digital Twin logic ...
+        st.subheader("Predictive Maintenance with Work Order Integration")
+        pred_maint_df_filtered = filter_df_by_site(st.session_state.pred_maint_data)
+        st.dataframe(pred_maint_df_filtered.style.highlight_max(subset=['Predicted Failure Risk (%)'], color='lightcoral'), use_container_width=True, hide_index=True)
+
+        st.subheader("Digital Twin for GxP Change Simulation")
+        change_desc = st.text_input("Describe the change for simulation:", "Apply security patch KB5034122 to LIMS-PROD server")
+        if st.button("🚀 Run Simulation in Digital Twin", type="primary"):
+            with st.spinner("Simulation in progress..."):
+                st.session_state.sim_result = run_digital_twin_simulation(change_desc)
+        if 'sim_result' in st.session_state:
+            st.metric("Assessed Risk Level", st.session_state.sim_result['risk'])
+            st.text_area("Simulation Impact Report", st.session_state.sim_result['impact'], height=150)
 
 elif page == "📋 **GxP & Audit Readiness**":
     st.header(f"📋 GxP & Audit Readiness for **{site_selection}**")
@@ -305,27 +339,50 @@ elif page == "📋 **GxP & Audit Readiness**":
     st.subheader("Compliance Posture KPIs")
     st.caption("These metrics provide a quantifiable, real-time view of your compliance posture, transforming audit preparation from a periodic scramble into a state of continuous readiness.")
     gxp_kpi1, gxp_kpi2 = st.columns(2)
-    # ... GxP KPI logic ...
+    risk_vmp_df = filter_df_by_site(data['risk_vmp_df'])
+    if not risk_vmp_df.empty:
+        validated_count = risk_vmp_df[risk_vmp_df['Status'] != 'At Risk'].shape[0]
+        gxp_kpi1.metric("GxP Validation Coverage", f"{validated_count / risk_vmp_df.shape[0]:.1%}", help="Percentage of GxP-critical systems currently in a validated state.")
+        gxp_kpi2.metric("High-Risk Systems Due Validation (<30d)", risk_vmp_df[(risk_vmp_df['Days Until Due'] < 30) & (risk_vmp_df['System Criticality'] > 7)].shape[0])
 
     st.subheader("Risk-Adjusted Validation Master Plan (VMP)")
     st.caption("This matrix moves beyond simple due dates to prioritize validation efforts based on **risk and criticality**. It ensures that your team's valuable time is spent on the systems that pose the greatest risk to GxP compliance and scientific outcomes if they fail. Focus on the top-right quadrant first.")
-    # ... VMP plot logic ...
+    fig_risk_vmp = px.scatter(risk_vmp_df, x="Days Until Due", y="System Criticality", size="Validation Effort (Hours)", color="Status", hover_name="System/Instrument", title="Validation Priority Matrix")
+    if not risk_vmp_df.empty:
+        fig_risk_vmp.add_annotation(x=30, y=8, text="High Urgency/Risk Zone ->", showarrow=True, arrowhead=1)
+    st.plotly_chart(fig_risk_vmp, use_container_width=True)
 
     with st.expander("Interactive Audit Trail Navigator (21 CFR Part 11)"):
         st.caption("This tool provides a searchable, 'living' system file log. During an audit, you can answer data integrity questions instantly, demonstrating control and compliance with 21 CFR Part 11.")
-        # ... Audit log search logic ...
+        living_log_df = data['living_system_log']
+        query = st.text_input("Search the audit trail (e.g., \"Show actions by user 'davis_c' on LIMS-PROD\")", help="Search by user or system name.")
+        if query:
+            results_df = search_audit_log(living_log_df, query)
+        else:
+            results_df = living_log_df
+        st.dataframe(results_df, use_container_width=True, hide_index=True)
 
 elif page == "👥 **Leadership & Resource Planning**":
     st.header(f"👥 Leadership & Resource Planning for **{site_selection}**")
 
     st.subheader("AI-Powered Strategic Skill Development")
     st.caption("Effective leadership requires not just managing the present, but preparing for the future. This module cross-references the skills required for upcoming projects with the current capabilities of your team to proactively identify and address strategic skill gaps.")
-    # ... Skill gap logic ...
+    
+    team_perf_df, skills_gap = data['team_perf_df'], data['skills_gap']
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info("**Upcoming Project Skill Demand:**\n- 'AI Drug Discovery': Advanced Python, Cloud (FinOps)\n- 'LIMS v3 Upgrade': Advanced CSV/Validation")
+    with col2:
+        st.warning(f"**AI-Identified Gap:** {skills_gap['gap']}\n\n**Recommendation:** {skills_gap['recommendation']}")
     
     st.subheader("Team Skills Matrix")
     st.caption("A current snapshot of your team's proficiency across key technology domains. Use this to inform training plans and make balanced project assignments.")
-    # ... Skills matrix dataframe ...
-
+    st.dataframe(filter_df_by_site(team_perf_df).style.applymap(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else ''))
+    
     st.subheader("Resource Allocation Heatmap")
     st.caption("This heatmap visualizes your team's workload over the next six months. It provides an at-a-glance view to identify and prevent team member burnout (red cells) and find available capacity for new tasks (green cells). This is a critical tool for effective load-balancing and sustainable high performance.")
-    # ... Heatmap plot ...
+    heatmap_df = data['resource_allocation_df']
+    fig_heatmap = go.Figure(data=go.Heatmap(z=heatmap_df.values, x=heatmap_df.columns, y=heatmap_df.index, colorscale='RdYlGn_r'))
+    fig_heatmap.update_layout(title='Resource Allocation Forecast (%)')
+    st.plotly_chart(fig_heatmap, use_container_width=True)
