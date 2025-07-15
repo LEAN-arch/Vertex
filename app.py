@@ -184,7 +184,7 @@ if page == "🏠 **Home Cockpit**":
         st.metric(
             label="💵 Financial Velocity",
             value=f"{spend/budget:.1%}",
-            help=f"Percentage of total project budget spent (${spend}k of ${budget}k). Monitors burn rate against project timelines."
+            help=f"Percentage of total project budget spent (${spend:,.0f}k of ${budget:,.0f}k). Monitors burn rate against project timelines."
         )
         st.progress(spend/budget)
 
