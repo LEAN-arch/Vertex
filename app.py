@@ -19,7 +19,6 @@ from utils import (
     get_predictive_maintenance_data,
     get_capital_asset_model_data,
     get_project_forecast_data,
-    # --- NEW: Import functions for 10++ Generative/Autonomous features ---
     generate_gxp_document,
     generate_capex_proposal,
     run_mitigation_simulation
@@ -98,7 +97,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_list)
 # ==============================================================================
 with tab1:
     st.header("Executive Command & Strategy Hub")
-    st.caption("This module addresses the **Vision and Strategy** duties, enabling high-level communication and alignment.")
+    st.caption("This module addresses the **Vision and Strategy** duties, enabling high-level communication and alignment with site and global leadership.")
     
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Lab System Uptime", "99.8%")
@@ -255,7 +254,7 @@ with tab5:
         doc_type = st.selectbox("Select GxP Document to Generate:", ["Validation Plan (VP)", "Installation Qualification (IQ)", "Operational Qualification (OQ)", "Validation Summary Report (VSR)"])
     
     with gxp_col2:
-        st.write(" ") # for spacing
+        st.write(" ") 
         st.write(" ")
         if st.button(f"📄 Generate {doc_type} Draft for {system_to_validate}", use_container_width=True):
             with st.spinner(f"Generating {doc_type} draft..."):
