@@ -3,7 +3,34 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import timedelta
-from utils import * # Imports all utility functions
+from utils import (
+    # Explicitly import all required functions for clarity and error prevention
+    get_project_portfolio_data,
+    get_tco_data,
+    get_team_performance,
+    get_global_kpis,
+    get_assay_impact_data,
+    get_clinical_sample_journey,
+    get_systemic_risk_insight,
+    get_living_system_file_log,
+    get_risk_adjusted_vmp_data,
+    get_predictive_maintenance_data,
+    # "10++" Enhancement Functions
+    get_oee_data,
+    get_compliance_risk_score,
+    get_project_financials,
+    get_finops_data,
+    get_instrument_utilization_data,
+    get_utilization_heatmap_data,
+    get_mtbf_data,
+    get_resource_allocation_data,
+    get_action_center_items,
+    generate_weekly_briefing_text,
+    generate_capex_proposal_text,
+    run_digital_twin_simulation,
+    search_audit_log,
+    get_reagent_genealogy_data
+)
 
 # ==============================================================================
 # Page Configuration & Initial State
@@ -227,8 +254,9 @@ elif page == "💼 **Financial Intelligence & FinOps**":
         size_max=60,
         labels={"Uptime (%)": "Reliability (Uptime %)", "TCO ($k)": "Total Cost of Ownership ($k)"}
     )
-    fig_quad.add_vline(x=tco_df_filtered['Uptime (%)'].mean(), line_dash="dash", annotation_text="Avg. Uptime")
-    fig_quad.add_hline(y=tco_df_filtered['TCO ($k)'].mean(), line_dash="dash", annotation_text="Avg. TCO")
+    if not tco_df_filtered.empty:
+        fig_quad.add_vline(x=tco_df_filtered['Uptime (%)'].mean(), line_dash="dash", annotation_text="Avg. Uptime")
+        fig_quad.add_hline(y=tco_df_filtered['TCO ($k)'].mean(), line_dash="dash", annotation_text="Avg. TCO")
     st.plotly_chart(fig_quad, use_container_width=True)
     
     with st.expander("Generate CapEx Proposal"):
@@ -292,7 +320,13 @@ elif page == "⚙️ **Autonomous Operations**":
         
         st.subheader("Digital Twin for GxP Change Simulation")
         change_desc = st.text_input("Describe the change for simulation:", "Apply security patch KB5034122 to LIMS-PROD server")
-        # ... Digital Twin logic ...
+        if st.button("🚀 Run Simulation in Digital Twin", type="primary"):
+            with st.spinner("Simulation in progress..."):
+                st.session_state.sim_result = run_digital_twin_simulation(change_desc)
+        if 'sim_result' in st.session_state:
+            st.metric("Assessed Risk Level", st.session_state.sim_result['risk'])
+            st.text_area("Simulation Impact Report", st.session_state.sim_result['impact'], height=150)
+
 
 elif page == "📋 **GxP & Audit Readiness**":
     st.header(f"📋 GxP & Audit Readiness for **{site_selection}**")
