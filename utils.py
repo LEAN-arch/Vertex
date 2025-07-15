@@ -98,7 +98,6 @@ def get_finops_data():
     })
     return df.sort_values('Date')
 
-# BUG FIX: Re-introducing the missing function definition
 def get_instrument_utilization_data():
     """Simulates live instrument utilization."""
     return pd.DataFrame({
