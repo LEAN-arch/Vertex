@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 # ==============================================================================
 # --- Base Data Simulation Functions ---
@@ -36,7 +36,7 @@ def get_itsm_ticket_data():
     base_mttr = np.random.uniform(2, 6, size=len(dates))
     spike_indices = np.random.choice(len(dates), 2, replace=False)
     base_mttr[spike_indices] = [9.2, 9.5]
-    mttr_data = pd.Series(base_mttr, index=dates).reindex(tickets_df['Date'].unique(), method='pad')
+    mttr_data = pd.Series(base_mttr, index=dates).reindex(pd.to_datetime(tickets_df['Date'].unique()), method='pad')
     return tickets_df, mttr_data
 
 def get_asset_inventory_data():
@@ -49,7 +49,7 @@ def get_tech_radar_data():
 
 def get_vmp_tracker_data():
     """Simulates data for the Validation Master Plan Gantt chart, now with Status."""
-    return pd.DataFrame({'System/Instrument': [ 'New LIMS v2.0', 'New LIMS v2.0', 'New LIMS v2.0', 'SD HPLC #11', 'SD HPLC #11', 'SEA NGS #06', 'SEA NGS #06' ], 'Start': pd.to_datetime([ '2024-05-01', '2024-06-15', '2024-08-01', '2024-05-20', '2024-06-05', '2024-07-01', '2024-07-15' ]), 'Finish': pd.to_datetime([ '2024-06-14', '2024-07-30', '2024-08-15', '2024-06-04', '2024-06-15', '2024-07-14', '2024-08-01' ]), 'Phase': ['Validation Plan', 'IQ/OQ Execution', 'PQ & Go-Live', 'IQ', 'OQ', 'IQ', 'OQ/PQ'], 'Status': ['Completed', 'At Risk', 'On Track', 'Completed', 'Completed', 'On Track', 'On Track'], 'Validation Lead': ['J. Doe', 'J. Doe', 'J. Doe', 'A. Smith', 'A. Smith', 'L. Chen', 'L. Chen']})
+    return pd.DataFrame({'System/Instrument': [ 'New LIMS v2.0', 'SD HPLC #11', 'SEA NGS #06' ], 'Start': pd.to_datetime([ '2024-05-01', '2024-05-20', '2024-07-01' ]), 'Finish': pd.to_datetime([ '2024-08-15', '2024-06-15', '2024-08-01' ]), 'Phase': ['Validation Lifecycle', 'Qualification', 'Qualification'], 'Status': ['At Risk', 'Completed', 'On Track'], 'Validation Lead': ['J. Doe', 'A. Smith', 'L. Chen']})
 
 def get_audit_readiness_data():
     """Simulates data for the audit readiness checklist."""
@@ -61,10 +61,10 @@ def get_voice_of_scientist_data():
 
 def get_ai_briefing(audience, kpis):
     """Simulates an LLM generating a tailored briefing."""
-    if audience == "Site Leadership (SD)": return f"Team, this week DTE maintained exceptional lab system uptime of {kpis['uptime']}. Our key focus is supporting the new Cell Therapy lab build-out, which is currently on track. We are also addressing a minor increase in project delays (-5%) by reallocating resources to the LIMS upgrade project. Overall, the technology environment is stable and aligned with site goals."
+    if audience == "Site Leadership (SD)": return f"Team, this week DTE maintained exceptional lab system uptime of {kpis['uptime']}. Our key focus is supporting the new Cell Therapy lab build-out, which is currently on track. We are also addressing a minor increase in project delays by reallocating resources to the LIMS upgrade project. Overall, the technology environment is stable and aligned with site goals."
+    elif audience == "Global DTE Leadership": return f"Update from West Coast: Operational KPIs are strong with uptime at {kpis['uptime']} and P1 MTTR at {kpis['mttr']}. We are seeing a slight dip in project schedule adherence (85%), primarily due to vendor delays on the LIMS project. We are tracking one overdue GxP validation which is scheduled for remediation next week. All core services are meeting global standards."
     else: return f"Hi Team, just a quick update from DTE. We're happy to report that lab system stability remains high ({kpis['uptime']} uptime). We have a few new 'how-to' guides for the upgraded LIMS on the intranet, and we're planning a lunch-and-learn on advanced data analysis tools next month. As always, please continue to submit tickets for any issues you encounter."
 
-# --- ADDED MISSING FUNCTION ---
 def get_ai_root_cause(problem_description):
     """Simulates an AI co-pilot diagnosing an issue by correlating data from different systems."""
     if "hplc" in problem_description.lower() and "offline" in problem_description.lower():
@@ -86,7 +86,7 @@ def get_global_kpis():
     return pd.DataFrame({"KPI": ["System Uptime", "P1 Incident MTTR (h)", "User Satisfaction (CSAT)"], "West Coast": [99.8, 3.8, 4.6], "Global Avg": [99.7, 4.5, 4.4], "unit": ["%", "", "/5"]})
 
 def get_predictive_maintenance_data():
-    """Simulates output from the Predictive Instrument Failure ML model, now with a prescriptive fix."""
+    """Simulates output from the Predictive Instrument Failure ML model for the UI."""
     return pd.DataFrame({'Asset ID': ['VRTX-SD-HPLC-007', 'VRTX-SEA-NGS-002', 'VRTX-SD-MS-001'], 'Instrument Type': ['Agilent HPLC', 'Illumina NovaSeq', 'Waters Mass Spec'], 'Predicted Failure Risk (%)': [85, 45, 20], 'Predicted Failure Type': ['Pump Seal Failure', 'Laser Power Degradation', 'Normal Wear'], 'Prescribed Fix': ['Replace pump seal (P/N 5063-6589)', 'Re-calibrate laser power output', 'Continue standard monitoring']})
 
 def get_capital_asset_model_data():
@@ -104,19 +104,37 @@ def get_project_forecast_data(portfolio_df):
 def generate_gxp_document(system_name, doc_type):
     """Simulates a GAMP 5-trained LLM generating a GxP document draft."""
     header = f"## Draft: {doc_type} for {system_name}\n**Document ID:** VP-DTE-WST-{doc_type.replace(' ', '')}-001\n**Status:** DRAFT\n**Author:** DTE Orchestration Engine\n\n"
-    if doc_type == "Validation Plan (VP)": return header + "### 1.0 Introduction\nThis document outlines the validation strategy for the {system_name} system to ensure it is fit for its intended use and complies with Vertex policies and 21 CFR Part 11.\n\n### 2.0 Scope\nThe scope of this validation includes the qualification of the hardware, software, and procedures associated with the {system_name}.\n\n### 3.0 Validation Approach (GAMP 5 Category 4)\nA risk-based approach will be followed, including IQ, OQ, and PQ testing."
-    elif doc_type == "Installation Qualification (IQ)": return header + "### 1.0 Purpose\nTo verify that the {system_name} and its components have been installed correctly according to vendor specifications and Vertex design documents.\n\n### 2.0 Test Cases\n| Step | Procedure | Expected Result | Actual Result | Pass/Fail |\n|---|---|---|---|---|\n| 1.1 | Verify physical installation and connections. | All components present and correctly connected. | | |\n| 1.2 | Confirm software version matches specification. | Software version is 3.1.4. | | |"
-    else: return header + f"Content for the {doc_type} will be generated here based on the system's User Requirement Specification and GAMP 5 category."
+    if doc_type == "Validation Plan (VP)": return header + "### 1.0 Introduction\nThis document outlines the validation strategy for the {system_name} system..."
+    elif doc_type == "Installation Qualification (IQ)": return header + "### 1.0 Purpose\nTo verify that the {system_name} and its components have been installed correctly..."
+    else: return header + f"Content for the {doc_type} will be generated here..."
 
 def generate_capex_proposal(asset_details):
     """Simulates a fine-tuned LLM generating a full CapEx proposal from model data."""
     return f"""## Capital Expenditure Request: Replacement of {asset_details['Asset ID']}
 
 **1. Executive Summary:**
-This proposal requests ${asset_details['Total Cost of Ownership ($)'] * 1.5 / 1000:,.1f}k in capital funding to replace the existing {asset_details['Asset Age (Yrs)']}-year-old {asset_details['Asset Type']} ({asset_details['Asset ID']}). The current asset has a high Total Cost of Ownership (${asset_details['Total Cost of Ownership ($)']}) and is critical to our discovery pipeline (Scientific Need Score: {asset_details['Scientific Need Score']}/10). This investment will mitigate significant operational risk and directly support Vertex's strategic goals in [Relevant Scientific Area]."""
+This proposal requests ${asset_details['Total Cost of Ownership ($)'] * 1.5 / 1000:,.1f}k in capital funding to replace the existing {asset_details['Asset Age (Yrs)']}-year-old {asset_details['Asset Type']} ({asset_details['Asset ID']}). This investment will mitigate significant operational risk and directly support Vertex's strategic goals..."""
 
 def run_mitigation_simulation(scenario):
     """Simulates a Monte Carlo analysis for different project mitigation scenarios."""
     if "Engineer" in scenario: return {"new_finish_date": "2024-08-10", "budget_impact": 25, "success_prob": 75}
     elif "Overtime" in scenario: return {"new_finish_date": "2024-08-20", "budget_impact": 15, "success_prob": 60}
     else: return {"new_finish_date": "2024-07-28", "budget_impact": 0, "success_prob": 95}
+
+def get_self_healing_log():
+    """Simulates the real-time log from the autonomous reliability module."""
+    now = datetime.now()
+    return pd.DataFrame({'Timestamp': [now - timedelta(minutes=5), now - timedelta(hours=2), now - timedelta(hours=6)], 'System': ['LIMS Production DB', 'SD-HPLC-007', 'Scientific Data Archive'], 'Event Detected': ['High query latency detected (>3s)', 'Anomalous pressure signature detected', 'Data backup job failed'], 'Autonomous Diagnosis (RCA)': ['Orphaned SQL query from user `jdoe`', 'Precursor signature for pump seal failure', 'Network timeout to secondary storage'], 'Autonomous Resolution': ['Killed orphaned query, restored latency to <50ms', 'Prescribed Fix P/N 5063-6589, initiated workflow', 'Re-initiated backup job, completed successfully'], 'Status': ['Resolved', 'Action Pending Approval', 'Resolved']})
+
+def run_strategic_financial_model(query):
+    """Simulates the output of the complex financial and strategic modeler."""
+    return {"capex_impact": 55.3, "headcount_growth": 45, "npv": 127.5, "narrative": "Accelerating the C> program by 30% will require significant upfront investment in new lab facilities and specialized equipment, totaling an estimated $55.3M over 5 years. This will necessitate hiring approximately 45 new FTEs, with a focus on QC and process science. While costly, the simulation forecasts a highly positive risk-adjusted NPV of $127.5M, driven by an accelerated timeline to market for two key therapeutic candidates."}
+
+def get_autonomous_resource_recommendation():
+    """Simulates the output of the autonomous resource orchestrator when a project is at risk."""
+    return {"project": "LIMS Upgrade", "health_score": 45, "recommended_resource": "P. Sharma", "resource_location": "Boston", "skills_needed": "CSV, LIMS Integration, SQL", "duration": "3 Weeks (50% Allocation)", "confidence": 90, "source_impact": "4-day delay to non-critical 'Boston Reporting' project"}
+
+def get_living_system_file_log():
+    """Simulates a query against the 'Living System Lifecycle File' (LSLF)."""
+    now = datetime.now()
+    return pd.DataFrame({'Event Timestamp': [now - timedelta(minutes=15), now - timedelta(hours=1, minutes=2), now - timedelta(hours=4, minutes=30)], 'Event Type': ['User Action', 'System Change', 'Data Entry'], 'User/Process': ['davis_c', 'System Patch Manager', 'HPLC #11'], 'Description': ['User davis_c logged into the system.', 'Security patch KB5011487 applied successfully.', 'New result set for Batch #VTX-45A-003 saved.'], 'Cryptographic Hash': [f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}']})
