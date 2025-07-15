@@ -133,7 +133,7 @@ def get_living_system_file_log():
 
 def get_tco_data():
     """Simulates data for the Total Cost of Ownership treemap."""
-    return pd.DataFrame({'Asset ID': ['VRTX-SEA-NGS-001', 'VRTX-SD-HPLC-002', 'VRTX-SD-ROBO-004', 'VRTX-SEA-MS-003'], 'Asset Type': ['NGS Sequencer', 'HPLC', 'Liquid Handler', 'Mass Spec'], 'TCO ($k)': [250, 120, 45, 180], 'Uptime (%)': [98.5, 99.8, 99.9, 99.1], 'Maintenance Costs ($k)': [70, 25, 10, 60]})
+    return pd.DataFrame({'Asset ID': ['VRTX-SEA-NGS-001', 'VRTX-SD-HPLC-002', 'VRTX-SD-ROBO-004', 'VRTX-SEA-MS-003'], 'Asset Type': ['NGS Sequencer', 'HPLC', 'Liquid Handler', 'Mass Spectrometer'], 'TCO ($k)': [250, 120, 45, 180], 'Uptime (%)': [98.5, 99.8, 99.9, 99.1], 'Maintenance Costs ($k)': [70, 25, 10, 60]})
 
 def get_automation_roi_data():
     """Simulates data for the cumulative ROI chart."""
@@ -149,10 +149,37 @@ def run_what_if_scenario(query):
         return "IMPACT: Delaying Hamilton-01 validation by 2 weeks will directly delay the start of the 'Cologuard Lib Prep Validation' project by 10 business days, creating a high risk of missing the Q3 go-live target."
     return "No critical project dependencies found for this scenario."
 
+# --- CORRECTED FUNCTION ---
 def get_assay_impact_data():
     """Simulates data for the instrument-to-assay Sankey diagram."""
-    return pd.DataFrame({'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"], 'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"], 'source': [0, 1, 1, 2, 3, 4, 5], 'target': [3, 4, 5, 6, 6, 7], 'value':  [10, 5, 5, 10, 5, 5]})
+    # This dictionary now has lists of equal length.
+    data_dict = {
+        'source': [0, 1, 1, 2, 3, 4, 5],
+        'target': [3, 4, 5, 6, 6, 7, 7],
+        'value':  [10, 5, 5, 8, 10, 5, 8],
+        'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"],
+        'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"]
+    }
+    # To use Sankey, we need a flat list of all unique sources and targets for the labels.
+    # The length of source, target, and value must be equal.
+    sankey_data = {
+        'source': data_dict['source'],
+        'target': data_dict['target'],
+        'value': data_dict['value'],
+    }
     
+    # We will pass the full labels and colors, but the plotting logic will use them based on node indices.
+    # It's better to pass the labels/colors separately to the plotting function.
+    # For this simulation, we will combine them into one DataFrame. The app.py will need to handle this.
+    # A simplified approach for the simulation:
+    return pd.DataFrame({
+        'label': data_dict['label'],
+        'color': data_dict['color'],
+        'source': data_dict['source'] + [0], # Pad to match length
+        'target': data_dict['target'] + [0], # Pad to match length
+        'value': data_dict['value'] + [0] # Pad to match length
+    })
+
 def get_reagent_genealogy_data():
     """Returns a path to a pre-made image for the genealogy graph."""
     return "https://i.imgur.com/U3v5G2d.png"
