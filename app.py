@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import time
 from utils import (
     get_strategic_alignment_data, get_project_portfolio_data,
     get_itsm_ticket_data, get_asset_inventory_data,
@@ -17,14 +18,18 @@ from utils import (
     get_team_performance, get_global_kpis,
     get_predictive_maintenance_data,
     get_capital_asset_model_data,
-    get_project_forecast_data
+    get_project_forecast_data,
+    # --- NEW: Import functions for 10++ Generative/Autonomous features ---
+    generate_gxp_document,
+    generate_capex_proposal,
+    run_mitigation_simulation
 )
 
 # ==============================================================================
 # Page Configuration
 # ==============================================================================
 st.set_page_config(
-    page_title="DTE Command Center | Vertex Pharmaceuticals",
+    page_title="DTE Strategic Orchestration Engine | Vertex Pharmaceuticals",
     page_icon="🧬",
     layout="wide"
 )
@@ -32,48 +37,31 @@ st.set_page_config(
 # ==============================================================================
 # Helper Functions for Advanced, Actionable Visualizations
 # ==============================================================================
-def create_wordcloud(text_data):
-    """Generates and displays a word cloud."""
-    wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='viridis').generate_from_frequencies(text_data)
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wordcloud, interpolation='bilinear')
-    ax.axis('off')
-    return fig
-
 def create_spc_chart(data, mttr_series):
-    """Creates a Statistical Process Control (SPC) chart for MTTR, distinguishing common vs. special cause variation."""
+    """Creates a Statistical Process Control (SPC) chart for MTTR."""
     mean = mttr_series.mean()
     std_dev = mttr_series.std()
     ucl = mean + (3 * std_dev)
     lcl = mean - (3 * std_dev) if (mean - (3 * std_dev)) > 0 else 0
-    
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(go.Bar(x=data['Date'], y=data['Ticket Count'], name='New Tickets', marker_color='#1f77b4'), secondary_y=False)
-    fig.add_trace(go.Scatter(x=data['Date'], y=mttr_series, name='MTTR (Hours)', mode='lines+markers', line=dict(color='#d62728')), secondary_y=True)
-    
+    fig.add_trace(go.Scatter(x=mttr_series.index, y=mttr_series, name='MTTR (Hours)', mode='lines+markers', line=dict(color='#d62728')), secondary_y=True)
     fig.add_hline(y=mean, line_dash="dash", line_color="green", annotation_text="Mean", annotation_position="bottom right", secondary_y=True)
     fig.add_hline(y=ucl, line_dash="dot", line_color="red", annotation_text="UCL (3σ)", annotation_position="top right", secondary_y=True)
-    fig.add_hline(y=lcl, line_dash="dot", line_color="red", annotation_text="LCL (3σ)", secondary_y=True)
-    
     outliers = mttr_series[(mttr_series > ucl) | (mttr_series < lcl)]
-    fig.add_trace(go.Scatter(x=outliers.index, y=outliers, mode='markers',
-                             marker=dict(color='red', size=12, symbol='x'),
-                             name='Special Cause Variation'), secondary_y=True)
-
+    fig.add_trace(go.Scatter(x=outliers.index, y=outliers, mode='markers', marker=dict(color='red', size=12, symbol='x'), name='Special Cause Variation'), secondary_y=True)
     fig.update_layout(title_text="Service Stability SPC Chart: Volume & MTTR")
     fig.update_yaxes(title_text="Ticket Volume", secondary_y=False)
     fig.update_yaxes(title_text="Avg. Resolution (Hours)", secondary_y=True)
     return fig
 
 def create_pareto_chart(df):
-    """Creates a true Pareto chart to identify the 'vital few' root causes based on the 80/20 rule."""
+    """Creates a true Pareto chart to identify the 'vital few' root causes."""
     df = df.sort_values(by='count', ascending=False)
     df['Cumulative Percentage'] = (df['count'].cumsum() / df['count'].sum()) * 100
-    
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(go.Bar(x=df['Category'], y=df['count'], name='Incident Count', marker_color='#1f77b4'), secondary_y=False)
     fig.add_trace(go.Scatter(x=df['Category'], y=df['Cumulative Percentage'], name='Cumulative %', line=dict(color='#d62728')), secondary_y=True)
-    
     fig.update_layout(title_text="Incident Pareto Analysis: Focusing on the Vital Few", yaxis_title="Incident Count", xaxis_title="Incident Category")
     fig.update_yaxes(title_text="Cumulative Percentage", secondary_y=True, range=[0, 101])
     return fig
@@ -82,8 +70,8 @@ def create_pareto_chart(df):
 # Main Application
 # ==============================================================================
 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Vertex_Pharmaceuticals_logo.svg/2560px-Vertex_Pharmaceuticals_logo.svg.png", width=200)
-st.title("DTE Command Center: West Coast (San Diego & Seattle)")
-st.markdown("##### Strategic Dashboard for the Associate Director, Laboratory Engineering & Technology (LE&W)")
+st.title("DTE Strategic Orchestration Engine: West Coast")
+st.markdown("##### Prescriptive, Generative, and Autonomous Platform for the Associate Director, Laboratory Engineering & Technology")
 
 # --- Data Loading ---
 strategic_df = get_strategic_alignment_data()
@@ -101,46 +89,39 @@ pred_maint_df = get_predictive_maintenance_data()
 cap_asset_df = get_capital_asset_model_data()
 portfolio_df = get_project_forecast_data(portfolio_df)
 
-
 # --- Tabbed Interface ---
-tab_list = [
-    "📈 **Executive Command & Strategy**",
-    "🎟️ **Lab Service Operations (ITIL)**",
-    "💻 **Asset & Vendor Lifecycle**",
-    "🚀 **Innovation & Project Pipeline**",
-    "📋 **Compliance & GxP Posture**",
-    "👥 **Leadership & Global Alignment**"
-]
+tab_list = ["📈 **Executive Strategy**", "⚙️ **Autonomous Operations**", "💼 **Asset & CapEx Engine**", "🚀 **Project Orchestration**", "📋 **Generative GxP & Compliance**", "👥 **Leadership & Global Alignment**"]
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_list)
 
 # ==============================================================================
-# TAB 1: EXECUTIVE COMMAND & STRATEGY
+# TAB 1: EXECUTIVE STRATEGY
 # ==============================================================================
 with tab1:
-    st.header("Executive Summary: DTE Performance & Strategic Alignment")
-    st.caption("This module addresses the **Vision and Strategy** duties, enabling high-level communication and alignment with site and global leadership.")
+    st.header("Executive Command & Strategy Hub")
+    st.caption("This module addresses the **Vision and Strategy** duties, enabling high-level communication and alignment.")
     
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Lab System Uptime (West Coast)", "99.8%", help="Measures Data Integrity principle of Availability.")
-    col2.metric("P1/P2 Incident MTTR (Hours)", "3.8", delta="-0.5h", help="Mean Time to Resolution for high-priority incidents.")
-    col3.metric("Strategic Projects On-Time", "85%", delta="-5%", delta_color="inverse")
-    col4.metric("GxP Compliance Gaps", "1", delta="1", delta_color="inverse", help="Count of overdue validations or critical audit findings.")
+    col1.metric("Lab System Uptime", "99.8%")
+    col2.metric("P1/P2 Incident MTTR (Hours)", "3.8", delta="-0.5h")
+    col3.metric("Project Health Score (Avg)", "81%", delta="3%")
+    col4.metric("GxP Compliance Gaps", "0", delta="-1", delta_color="normal")
     
     st.divider()
 
-    st.subheader("DTE Strategic Value & Stakeholder Communication")
+    st.subheader("Generative Strategic Communication")
+    st.caption("Lead engagement by generating high-quality, data-driven narratives for any audience.")
+    
     c1, c2 = st.columns([1.2, 1])
     with c1:
         st.markdown("**AI-Generated Value Story of the Month**")
-        st.info("🔬 **Value Story:** In May, the LE&W team successfully deployed the new automated liquid handlers for the San Diego Cell Therapy workflow. **Impact:** This reduced manual sample prep time by an estimated **70%** (120 hours/month), directly accelerating candidate screening for the VT-101 program and improving data consistency.", icon="💡")
+        st.info("🔬 **Value Story:** The **Autonomous Reliability Module** proactively identified a pump seal degradation on HPLC-007, preventing an estimated 2 days of downtime for the VT-101 program. The system autonomously scheduled maintenance, verified parts inventory, and closed the loop with the vendor, requiring only one-click approval from leadership.", icon="💡")
     with c2:
         st.markdown("**AI Stakeholder Briefing Generator**")
-        st.caption("Lead engagement and representation of DTE with tailored, impactful updates.")
         audience = st.selectbox("Select Audience:", ["Site Leadership (SD)", "Global DTE Leadership", "Lab Scientists"])
         if st.button("Generate Briefing", use_container_width=True):
             briefing = get_ai_briefing(audience, {"uptime": "99.8%", "mttr": "3.8h", "projects_on_time": "85%"})
             st.text_area("Generated Draft:", briefing, height=150)
-
+    
     st.divider()
 
     st.subheader("Strategic Portfolio Quadrant Analysis")
@@ -148,148 +129,152 @@ with tab1:
     
     median_effort = portfolio_df['Effort (Person-Weeks)'].median()
     median_impact = portfolio_df['Strategic Impact Score'].median()
-    
     fig_portfolio = px.scatter(
         portfolio_df, x="Effort (Person-Weeks)", y="Strategic Impact Score",
         size="Budget ($k)", color="Strategic Theme", hover_name="Project",
         size_max=60, title="DTE Strategic Projects: Impact vs. Effort Matrix"
     )
-    fig_portfolio.add_vline(x=median_effort, line_dash="dash", line_color="gray")
-    fig_portfolio.add_hline(y=median_impact, line_dash="dash", line_color="gray")
-    fig_portfolio.add_annotation(x=median_effort*1.5, y=median_impact*1.1, text="Strategic Bets", showarrow=False, font=dict(color="green", size=14))
-    fig_portfolio.add_annotation(x=median_effort*0.5, y=median_impact*1.1, text="Quick Wins", showarrow=False, font=dict(color="blue", size=14))
-    fig_portfolio.add_annotation(x=median_effort*0.5, y=median_impact*0.9, text="Foundational Tasks", showarrow=False, font=dict(color="grey", size=14))
-    fig_portfolio.add_annotation(x=median_effort*1.5, y=median_impact*0.9, text="Reconsider / Automate", showarrow=False, font=dict(color="orange", size=14))
+    # Add quadrant annotations
     st.plotly_chart(fig_portfolio, use_container_width=True)
 
 # ==============================================================================
-# TAB 2: LAB SERVICE OPERATIONS (ITIL)
+# TAB 2: AUTONOMOUS OPERATIONS
 # ==============================================================================
 with tab2:
-    st.header("Lab Service Operations (ITIL Framework)")
-    st.caption("This module addresses **Operational Execution** duties, ensuring day-to-day stability and compliance with the ITIL framework, a key GxP expectation for demonstrating control.")
+    st.header("Autonomous Lab Service Operations (ITIL Evolved)")
+    st.caption("This module transforms **Operational Execution** by integrating prescriptive ML and automation, fulfilling the ITIL framework's highest potential.")
 
-    st.subheader("ML Module: Predictive Instrument Failure & Service Foresight")
-    st.markdown("This ML model addresses the duty to **ensure robust instrumentation** by moving from a reactive break-fix model to a proactive predict-and-prevent strategy. This directly supports **GMP/GLP** requirements for qualified and reliable equipment.")
-    st.dataframe(pred_maint_df.style.highlight_max(subset=['Predicted Failure Risk (%)'], color='lightcoral'), use_container_width=True, hide_index=True)
+    st.subheader("Autonomous Reliability & Prescriptive Control Module")
+    st.markdown("This **10++** feature moves beyond prediction to **prescription and autonomous action**. It identifies potential failures, simulates the optimal fix, and initiates the entire service workflow for one-click leadership approval.")
+    
+    cols = st.columns(len(pred_maint_df.columns) + 1)
+    headers = list(pred_maint_df.columns) + ["Autonomous Action"]
+    for col, header in zip(cols, headers):
+        col.markdown(f"**{header}**")
+        
+    for i, row in pred_maint_df.iterrows():
+        cols[0].write(row['Asset ID'])
+        cols[1].write(row['Instrument Type'])
+        cols[2].progress(int(row['Predicted Failure Risk (%)']))
+        cols[3].write(row['Predicted Failure Type'])
+        cols[4].info(row['Prescribed Fix']) # Highlight the prescription
+        if cols[5].button("Initiate Workflow", key=f"auto_{i}", help="Click to autonomously draft work order, check parts inventory via SAP, and schedule maintenance."):
+            with st.spinner("Executing autonomous workflow..."):
+                time.sleep(2)
+                st.success(f"Workflow for {row['Asset ID']} initiated. Awaiting final approval in ServiceNow.")
+
     st.divider()
     
     st.subheader("Proactive Problem Management & Service Stability")
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**Incident Pareto Analysis**")
-        st.caption("Utilizes the **Pareto Principle (80/20 Rule)** to identify the vital few problems causing the most disruption, enabling data-driven resource allocation for **CAPA** initiatives.")
+        st.caption("Utilizes the **Pareto Principle** to identify the vital few problems, justifying strategic CAPA initiatives.")
         incident_categories = tickets_df[tickets_df['Type'] == 'Incident']['Category'].value_counts().reset_index(name='count')
-        fig_pareto = create_pareto_chart(incident_categories)
-        st.plotly_chart(fig_pareto, use_container_width=True)
+        st.plotly_chart(create_pareto_chart(incident_categories), use_container_width=True)
         
     with c2:
         st.markdown("**Service Stability SPC Chart**")
-        st.caption("Applies **Statistical Process Control (SPC)** to distinguish normal operational 'noise' from significant 'special cause' events that require immediate investigation, transforming the AD into an active process controller.")
+        st.caption("Applies **Statistical Process Control** to distinguish normal 'noise' from significant 'special cause' events requiring investigation.")
         ticket_counts_by_date = tickets_df.groupby('Date').size().reset_index(name='Ticket Count')
-        fig_spc = create_spc_chart(ticket_counts_by_date, mttr_data)
-        st.plotly_chart(fig_spc, use_container_width=True)
+        st.plotly_chart(create_spc_chart(ticket_counts_by_date, mttr_data), use_container_width=True)
 
 # ==============================================================================
-# TAB 3: ASSET & VENDOR LIFECYCLE
+# TAB 3: ASSET & CAPEX ENGINE
 # ==============================================================================
 with tab3:
-    st.header("GxP Asset & Vendor Lifecycle Management")
-    st.caption("This module addresses the duty to oversee all lab hardware and software, ensuring a compliant, secure, and cost-effective technology lifecycle as required by **21 CFR 820** and **GAMP 5**.")
+    st.header("Asset Lifecycle & Generative CapEx Engine")
+    st.caption("This module evolves asset management into strategic capital planning, addressing duties related to evaluation, vendor management, and financial stewardship as required by **21 CFR 820**.")
 
-    st.subheader("ML Module: Intelligent Capital Asset Refresh Modeler")
-    st.markdown("This ML model provides an objective, data-driven foundation for capital expenditure planning. It replaces subjective requests with a strategic, risk-based investment proposal based on TCO and scientific impact.")
+    st.subheader("Intelligent Capital Asset Refresh Modeler")
+    st.markdown("This ML model provides an objective, data-driven prioritization for capital expenditure. The **10++** Generative Engine below transforms this analysis into a board-ready proposal.")
     fig_cap_asset = px.scatter(
         cap_asset_df, x="Total Cost of Ownership ($)", y="Scientific Need Score",
         size="Asset Age (Yrs)", color="Asset Type", hover_name="Asset ID",
         title="Capital Asset Replacement Priority Matrix", size_max=40
     )
     st.plotly_chart(fig_cap_asset, use_container_width=True)
-    
+
     st.divider()
 
-    st.subheader("Key Vendor Performance Scorecards")
-    st.caption("Manage vendor relationships with data-driven insights to hold partners accountable to Vertex's high standards for support and reliability.")
-    for vendor_name, data in vendor_data.items():
-        with st.expander(f"**{vendor_name}** - Overall Status: {data['qbr_status']}"):
-            v_col1, v_col2, v_col3 = st.columns(3)
-            v_col1.metric("SLA Compliance", f"{data['sla_compliance']}%", delta=f"{data['sla_delta']}%")
-            v_col2.metric("Avg. Support MTTR (h)", data['mttr'], delta=f"{data['mttr_delta']}h")
-            v_col3.metric("Hardware Reliability (MTBF days)", data['mtbf'], help="Mean Time Between Failures")
+    st.subheader("Generative Capital Expenditure (CapEx) Engine")
+    st.markdown("Select a high-priority asset identified by the model above and let the **Vertex-GPT** generate a comprehensive, multi-page CapEx proposal in the official finance template. This elevates the AD from analyst to executive reviewer.")
+    
+    high_priority_asset = st.selectbox("Select Asset for CapEx Proposal:", cap_asset_df['Asset ID'].unique())
+    if st.button(f"✍️ Generate Full CapEx Proposal for {high_priority_asset}", use_container_width=True):
+        asset_details = cap_asset_df[cap_asset_df['Asset ID'] == high_priority_asset].to_dict('records')[0]
+        with st.spinner(f"Generating comprehensive proposal for {high_priority_asset}..."):
+            proposal = generate_capex_proposal(asset_details)
+            time.sleep(3)
+            st.text_area("Generated CapEx Proposal Draft", proposal, height=400)
 
 # ==============================================================================
-# TAB 4: INNOVATION & PROJECT PIPELINE
+# TAB 4: PROJECT ORCHESTRATION
 # ==============================================================================
 with tab4:
-    st.header("Innovation Radar & Strategic Project Pipeline")
-    st.caption("This module addresses the duties to **monitor emerging technologies** and **oversee the execution of projects**, ensuring innovation is managed with discipline and projects are delivered on time.")
+    st.header("Innovation Radar & Project Orchestration Engine")
+    st.caption("This module transforms project oversight from passive monitoring to active, data-driven orchestration.")
 
-    st.subheader("ML Module: Automated Project Risk & Timeline Forecaster")
-    st.markdown("This ML model provides foresight into project timelines, enabling proactive intervention. This is crucial for managing projects with **CSV** components, where delays can have significant compliance and business impact.")
-    st.dataframe(
-        portfolio_df[['Project', 'Status', 'Health Score (%)', 'Planned Finish', 'Predicted Finish']].style.apply(
-            lambda x: ['background-color: lightcoral' if v < 60 else 'background-color: lightyellow' if v < 85 else '' for v in x],
-            subset=['Health Score (%)']
-        ),
-        use_container_width=True,
-        hide_index=True
-    )
-    
-    st.divider()
+    st.subheader("Project Mitigation & Simulation Engine")
+    st.markdown("This **10++** feature moves beyond risk prediction to **prescriptive risk resolution**. For at-risk projects, the AD can now simulate the impact of leadership decisions to identify the optimal path forward.")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.subheader("Emerging Technology Radar")
-        st.caption("A strategic framework for managing the innovation lifecycle from assessment to adoption.")
-        fig_radar_tech = px.scatter(
-            tech_radar_df, x="theta", y="r", color="Quadrant", text="Technology",
-            hover_name="Details", title="DTE Lab Technology Radar", polar=True
-        )
-        fig_radar_tech.update_layout(polar=dict(radialaxis=dict(showticklabels=False, ticks='', gridcolor='lightgrey'), angularaxis=dict(showticklabels=False, ticks='')))
-        st.plotly_chart(fig_radar_tech, use_container_width=True)
+    at_risk_project = portfolio_df[portfolio_df['Health Score (%)'] < 60].iloc[0]
+    with st.expander(f"**Run Mitigation Scenarios for At-Risk Project: {at_risk_project['Project']} (Health: {at_risk_project['Health Score (%)']}%)**"):
+        st.warning(f"AI Forecaster predicts a {at_risk_project['Predicted Finish'].strftime('%Y-%m-%d')} finish date, a {(at_risk_project['Predicted Finish'] - at_risk_project['Planned Finish']).days}-day delay.")
+        
+        scenario = st.radio("Select Mitigation Strategy to Simulate:", 
+                            ["Add 1 Validation Engineer", "Authorize Overtime", "De-scope Non-Critical Feature"],
+                            horizontal=True)
+        
+        if st.button("Simulate Scenario Impact", use_container_width=True):
+            with st.spinner(f"Running 10,000 Monte Carlo simulations for '{scenario}'..."):
+                results = run_mitigation_simulation(scenario)
+                time.sleep(2)
+                st.success(f"Simulation Complete for '{scenario}'")
+                res_col1, res_col2, res_col3 = st.columns(3)
+                res_col1.metric("New Predicted Finish", results['new_finish_date'])
+                res_col2.metric("Budget Impact", f"${results['budget_impact']:,}k")
+                res_col3.metric("Probability of On-Time Finish", f"{results['success_prob']}%")
 
-    with c2:
-        st.subheader("Process Automation Impact")
-        st.caption("Quantifies the business value of automation initiatives, translating technical work into operational efficiency gains.")
-        automation_data = pd.DataFrame({'Project': ['Automated HPLC Report Generation', 'NGS FASTQ File Transfer Script', 'LIMS Data Entry Bot'], 'Hours Saved / Month': [40, 25, 60]})
-        fig_automation = px.bar(automation_data, x='Project', y='Hours Saved / Month', text='Hours Saved / Month', title='Impact of Lab Automation Initiatives')
-        st.plotly_chart(fig_automation, use_container_width=True)
+    st.subheader("Automated Project Risk & Timeline Forecaster")
+    st.dataframe(portfolio_df[['Project', 'Status', 'Health Score (%)', 'Planned Finish', 'Predicted Finish']], use_container_width=True, hide_index=True)
 
 # ==============================================================================
-# TAB 5: COMPLIANCE & GXP POSTURE
+# TAB 5: GENERATIVE GXP & COMPLIANCE
 # ==============================================================================
 with tab5:
-    st.header("Compliance & GxP Posture Dashboard")
-    st.caption("This module provides a centralized view to **ensure compliance with regulatory standards**, making audits a non-event by demonstrating robust, continuous control.")
+    st.header("Generative GxP Documentation & Compliance Suite")
+    st.caption("This module addresses compliance duties by leveraging AI to generate GxP documents, drastically reducing documentation overhead and ensuring consistency with **GAMP 5** and **21 CFR Part 11**.")
 
-    st.subheader("Interactive Validation Master Plan (VMP)")
-    st.markdown("The primary tool for managing the **GAMP 5** lifecycle for all computerized systems. It provides a clear view of the validation pipeline, ensuring new instruments are brought online in a compliant and timely manner.")
-    fig_vmp = px.timeline(
-        vmp_df, x_start="Start", x_end="Finish", y="System/Instrument", color="Status", 
-        hover_name="Validation Lead", title="Validation Master Plan (VMP) - Status & Timeline",
-        custom_data=['Phase']
-    )
-    fig_vmp.update_traces(text=vmp_df['Phase'])
-    st.plotly_chart(fig_vmp, use_container_width=True)
+    st.subheader("Generative GxP Documentation Suite")
+    st.markdown("This **10++** feature accelerates the entire validation lifecycle. Select a system and document type, and let the GAMP 5-trained LLM generate a high-quality first draft, turning weeks of writing into hours of reviewing.")
+    
+    gxp_col1, gxp_col2 = st.columns(2)
+    with gxp_col1:
+        system_to_validate = st.selectbox("Select System from VMP:", vmp_df['System/Instrument'].unique())
+        doc_type = st.selectbox("Select GxP Document to Generate:", ["Validation Plan (VP)", "Installation Qualification (IQ)", "Operational Qualification (OQ)", "Validation Summary Report (VSR)"])
+    
+    with gxp_col2:
+        st.write(" ") # for spacing
+        st.write(" ")
+        if st.button(f"📄 Generate {doc_type} Draft for {system_to_validate}", use_container_width=True):
+            with st.spinner(f"Generating {doc_type} draft..."):
+                doc_draft = generate_gxp_document(system_to_validate, doc_type)
+                time.sleep(3)
+                st.text_area(f"Generated {doc_type} Draft:", doc_draft, height=300)
 
-    st.subheader("Internal Audit Readiness Checklist")
-    st.markdown("A proactive self-assessment tool demonstrating a mature, risk-based approach to **21 CFR Part 11** and **Data Integrity (ALCOA+)** requirements.")
-    def style_audit_status(val):
-        if val == 'Ready': return 'background-color: #2ca02c; color: white;'
-        if val == 'Needs Review': return 'background-color: #ffc107; color: black;'
-        if val == 'Gap Identified': return 'background-color: #d62728; color: white;'
-        return ''
-    st.dataframe(audit_df.style.map(style_audit_status, subset=['Status']), use_container_width=True, hide_index=True)
+    st.divider()
+    st.subheader("Validation & Audit Readiness")
+    st.dataframe(audit_df.style.map(lambda val: 'background-color: lightcoral' if val == 'Gap Identified' else 'background-color: lightyellow' if val == 'Needs Review' else '', subset=['Status']), use_container_width=True, hide_index=True)
 
 # ==============================================================================
 # TAB 6: LEADERSHIP & GLOBAL ALIGNMENT
 # ==============================================================================
 with tab6:
     st.header("Leadership: Team Performance & Global Alignment")
-    st.caption("This module addresses duties related to **team leadership** and **matrix leadership**, fostering a high-performance culture and ensuring a globally aligned, locally enabled experience.")
+    st.caption("This module addresses duties related to team leadership and matrix leadership, ensuring personnel are qualified as per **GxP** requirements.")
 
     st.subheader("Team Performance & Development Hub")
-    st.markdown("Strategic talent management to build a future-ready team, ensuring personnel are qualified as per **GxP** requirements.")
     
     col1, col2 = st.columns([1.5, 1])
     with col1:
@@ -302,26 +287,13 @@ with tab6:
     st.divider()
 
     st.subheader("Matrix Leadership: Global Alignment Dashboard")
-    st.markdown("Fostering a culture of global excellence by benchmarking and sharing best practices.")
     
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**West Coast vs. Global KPI Benchmark**")
         for index, row in global_kpis_df.iterrows():
-            kpi_name = row['KPI']
-            wc_val = row['West Coast']
-            global_val = row['Global Avg']
-            delta = f"{wc_val - global_val:.1f}{row.get('unit','')}"
-            st.metric(label=f"{kpi_name}", value=f"{wc_val}{row.get('unit','')}", delta=delta, help=f"vs. Global Average of {global_val}{row.get('unit','')}")
+            st.metric(label=f"{row['KPI']}", value=f"{row['West Coast']}{row.get('unit','')}", delta=f"{(row['West Coast'] - row['Global Avg']):.1f}{row.get('unit','')}", help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}")
     
     with col2:
         st.markdown("**Global Best Practice Exchanger (AI Identified)**")
-        st.success(
-            """
-            **New Best Practice Identified (from Boston DTE):**
-            - **Issue:** 'Lab Printer Offline' incidents.
-            - **Boston's Solution:** Implemented a proactive script that pings all networked printers every 15 minutes. If a printer fails to respond twice, it auto-generates a low-priority ticket before a scientist reports it.
-            - **Impact:** Reduced user-reported printer incidents by 90%.
-            - **Recommendation:** Pilot this solution in the San Diego lab.
-            """
-        )
+        st.success("**New Best Practice Identified (from Boston DTE):**\n- **Issue:** 'Lab Printer Offline' incidents.\n- **Boston's Solution:** Proactive ping script to auto-generate low-priority tickets before user reports.\n- **Impact:** Reduced user-reported printer incidents by 90%.\n- **Recommendation:** Pilot this solution in the San Diego lab.")
