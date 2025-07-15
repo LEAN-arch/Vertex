@@ -131,36 +131,17 @@ def get_living_system_file_log():
     now = datetime.now()
     return pd.DataFrame({'Event Timestamp': [now - timedelta(minutes=15), now - timedelta(hours=1, minutes=2), now - timedelta(hours=4, minutes=30)], 'Event Type': ['User Action', 'System Change', 'Data Entry'], 'User/Process': ['davis_c', 'System Patch Manager', 'HPLC #11'], 'Description': ['User davis_c logged into the system.', 'Security patch KB5011487 applied successfully.', 'New result set for Batch #VTX-45A-003 saved.'], 'Cryptographic Hash': [f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}']})
 
-# ==============================================================================
-# --- NEW Functions for the Final Integrated Feature Set ---
-# ==============================================================================
-
 def get_tco_data():
     """Simulates data for the Total Cost of Ownership treemap."""
-    return pd.DataFrame({
-        'Asset ID': ['VRTX-SEA-NGS-001', 'VRTX-SD-HPLC-002', 'VRTX-SD-ROBO-004', 'VRTX-SEA-MS-003'],
-        'Asset Type': ['NGS Sequencer', 'HPLC', 'Liquid Handler', 'Mass Spec'],
-        'TCO ($k)': [250, 120, 45, 180],
-        'Uptime (%)': [98.5, 99.8, 99.9, 99.1],
-        'Maintenance Costs ($k)': [70, 25, 10, 60]
-    })
+    return pd.DataFrame({'Asset ID': ['VRTX-SEA-NGS-001', 'VRTX-SD-HPLC-002', 'VRTX-SD-ROBO-004', 'VRTX-SEA-MS-003'], 'Asset Type': ['NGS Sequencer', 'HPLC', 'Liquid Handler', 'Mass Spec'], 'TCO ($k)': [250, 120, 45, 180], 'Uptime (%)': [98.5, 99.8, 99.9, 99.1], 'Maintenance Costs ($k)': [70, 25, 10, 60]})
 
 def get_automation_roi_data():
     """Simulates data for the cumulative ROI chart."""
-    return pd.DataFrame({
-        'Month': range(1, 13),
-        'Cumulative Value ($k)': [-50, -40, -30, -15, 5, 25, 45, 65, 85, 105, 125, 145]
-    })
+    return pd.DataFrame({'Month': range(1, 13), 'Cumulative Value ($k)': [-50, -40, -30, -15, 5, 25, 45, 65, 85, 105, 125, 145]})
     
 def get_risk_adjusted_vmp_data():
     """Simulates data for the risk-based validation scheduling chart."""
-    return pd.DataFrame({
-        'System/Instrument': [ 'New LIMS v2.0', 'Research HPLC #15', 'QC Plate Reader #3', 'Empower Upgrade' ],
-        'Days Until Due': [45, 120, 15, 90],
-        'System Criticality': [10, 3, 8, 9],
-        'Validation Effort (Hours)': [400, 80, 120, 300],
-        'Status': ['On Track', 'On Track', 'At Risk', 'On Track']
-    })
+    return pd.DataFrame({'System/Instrument': [ 'New LIMS v2.0', 'Research HPLC #15', 'QC Plate Reader #3', 'Empower Upgrade' ], 'Days Until Due': [45, 120, 15, 90], 'System Criticality': [10, 3, 8, 9], 'Validation Effort (Hours)': [400, 80, 120, 300], 'Status': ['On Track', 'On Track', 'At Risk', 'On Track']})
 
 def run_what_if_scenario(query):
     """Simulates the output of the what-if scenario planner."""
@@ -170,44 +151,22 @@ def run_what_if_scenario(query):
 
 def get_assay_impact_data():
     """Simulates data for the instrument-to-assay Sankey diagram."""
-    return pd.DataFrame({
-        'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"],
-        'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"],
-        'source': [0, 1, 1, 2, 3, 4, 5],
-        'target': [3, 4, 5, 6, 6, 7],
-        'value':  [10, 5, 5, 10, 5, 5]
-    })
+    return pd.DataFrame({'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"], 'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"], 'source': [0, 1, 1, 2, 3, 4, 5], 'target': [3, 4, 5, 6, 6, 7], 'value':  [10, 5, 5, 10, 5, 5]})
     
 def get_reagent_genealogy_data():
     """Returns a path to a pre-made image for the genealogy graph."""
-    # In a real app, this would generate a graphviz plot. We simulate it with a static image.
-    return "https://i.imgur.com/U3v5G2d.png" # Example image of a network graph
+    return "https://i.imgur.com/U3v5G2d.png"
 
 def get_clinical_sample_journey():
     """Simulates the journey of a single clinical sample."""
-    return pd.DataFrame({
-        'Step': [1, 2, 3, 4, 5],
-        'Action': ['Sample Received', 'Prep & Aliquoting', 'PCR Amplification', 'Data Analysis', 'Result Certified'],
-        'System/Instrument': ['LIMS Entry Station', 'Hamilton-03', 'QuantStudio-08', 'Pipeline Server v2.1', 'LIMS Reporting Module'],
-        'Timestamp': pd.to_datetime(['2024-05-20 09:00', '2024-05-20 11:30', '2024-05-20 14:00', '2024-05-20 18:00', '2024-05-21 10:00']),
-        'Status': ['OK', 'OK', 'OK', 'OK', 'OK']
-    })
+    return pd.DataFrame({'Step': [1, 2, 3, 4, 5], 'Action': ['Sample Received', 'Prep & Aliquoting', 'PCR Amplification', 'Data Analysis', 'Result Certified'], 'System/Instrument': ['LIMS Entry Station', 'Hamilton-03', 'QuantStudio-08', 'Pipeline Server v2.1', 'LIMS Reporting Module'], 'Timestamp': pd.to_datetime(['2024-05-20 09:00', '2024-05-20 11:30', '2024-05-20 14:00', '2024-05-20 18:00', '2024-05-21 10:00']), 'Status': ['OK', 'OK', 'OK', 'OK', 'OK']})
     
 def get_qms_query_result(query):
     """Simulates an LLM-powered query against a QMS."""
     if "CAPA" in query and "software" in query:
-        return pd.DataFrame({
-            'CAPA ID': ['CAPA-0123', 'CAPA-0145'],
-            'Product': ['Cologuard', 'Oncotype DX'],
-            'Issue': ['Software bug caused incorrect data parsing', 'UI freeze during result entry'],
-            'Status': ['Closed', 'Open']
-        })
+        return pd.DataFrame({'CAPA ID': ['CAPA-0123', 'CAPA-0145'], 'Product': ['Cologuard', 'Oncotype DX'], 'Issue': ['Software bug caused incorrect data parsing', 'UI freeze during result entry'], 'Status': ['Closed', 'Open']})
     return pd.DataFrame({'Result': ['No matching records found for your query.']})
     
 def get_systemic_risk_insight():
     """Simulates an AI agent finding a hidden, systemic risk."""
-    return {
-        "title": "Systemic Vendor Risk Detected: ACME Reagents",
-        "insight": "AI analysis of QMS, LIMS, and ITSM data reveals that 'ACME Reagents' is linked to 3 open CAPAs and 2 lots currently on hold. Furthermore, the MTTR for incidents related to their reagents is 40% higher than the lab average.",
-        "recommendation": "Initiate a strategic business review of this vendor relationship and evaluate alternative suppliers."
-    }
+    return {"title": "Systemic Vendor Risk Detected: ACME Reagents", "insight": "AI analysis of QMS, LIMS, and ITSM data reveals that 'ACME Reagents' is linked to 3 open CAPAs and 2 lots currently on hold. Furthermore, the MTTR for incidents related to their reagents is 40% higher than the lab average.", "recommendation": "Initiate a strategic business review of this vendor relationship and evaluate alternative suppliers."}
