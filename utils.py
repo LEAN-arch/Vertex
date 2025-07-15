@@ -32,7 +32,7 @@ def get_project_portfolio_data():
         'Budget ($k)': [2000, 750, 300, 1500, 500, 80],
         'Strategic Theme': ['New Modalities', 'Compliance', 'Efficiency', 'Discovery', 'Operations', 'Innovation'],
         'Status': ['On Track', 'At Risk', 'On Track', 'On Track', 'Completed', 'On Track'],
-        'Planned Finish': [pd.to_datetime('2024-12-15'), pd.to_datetime('2024-07-30'), pd.to_datetime('2024-09-01'), pd.to_datetime('2024-11-01'), pd.to_datetime('2024-05-30'), pd.to_datetime('2024-08-20')]
+        'Planned Finish': pd.to_datetime(['2024-12-15', '2024-07-30', '2024-09-01', '2024-11-01', '2024-05-30', '2024-08-20'])
     }
     return pd.DataFrame(data)
 
@@ -57,9 +57,14 @@ def get_itsm_ticket_data():
     
     # Simulate MTTR for the SPC chart - adding some variability for realism
     base_mttr = np.random.uniform(2, 6, size=len(dates))
-    spike = np.random.choice(len(dates), 1, replace=False) # Pick one day for a spike
-    base_mttr[spike] = 9.2 # Special cause variation
-    mttr_data = pd.Series(base_mttr, name="MTTR", index=dates)
+    spike_indices = np.random.choice(len(dates), 2, replace=False) # Pick two days for spikes
+    base_mttr[spike_indices] = [9.2, 9.5] # Special cause variation
+    
+    # Create a pandas Series with the correct DatetimeIndex
+    mttr_data = pd.Series(base_mttr, index=dates)
+
+    # To align with the ticket_counts_by_date in app.py, we should return the series and let the main app handle alignment
+    # But for simplicity here, we can just return the series itself.
     
     return tickets_df, mttr_data
 
@@ -100,7 +105,7 @@ def get_vmp_tracker_data():
         'Start': pd.to_datetime([ '2024-05-01', '2024-06-15', '2024-08-01', '2024-05-20', '2024-06-05', '2024-07-01', '2024-07-15' ]),
         'Finish': pd.to_datetime([ '2024-06-14', '2024-07-30', '2024-08-15', '2024-06-04', '2024-06-15', '2024-07-14', '2024-08-01' ]),
         'Phase': ['Validation Plan', 'IQ/OQ Execution', 'PQ & Go-Live', 'IQ', 'OQ', 'IQ', 'OQ/PQ'],
-        'Status': ['Completed', 'At Risk', 'On Track', 'Completed', 'Completed', 'On Track', 'On Track'],
+        'Status': ['On Track', 'At Risk', 'On Track', 'On Track', 'On Track', 'On Track', 'On Track'],
         'Validation Lead': ['J. Doe', 'J. Doe', 'J. Doe', 'A. Smith', 'A. Smith', 'L. Chen', 'L. Chen']
     }
     return pd.DataFrame(data)
@@ -144,7 +149,7 @@ def get_global_kpis():
     return pd.DataFrame({ "KPI": ["System Uptime", "P1 Incident MTTR (h)", "User Satisfaction (CSAT)"], "West Coast": [99.8, 3.8, 4.6], "Global Avg": [99.7, 4.5, 4.4], "unit": ["%", "", "/5"] })
 
 # ==============================================================================
-# --- NEW: Functions to power the Machine Learning Modules ---
+# --- NEW/UPDATED: Functions to power the Machine Learning Modules ---
 # ==============================================================================
 
 def get_predictive_maintenance_data():
