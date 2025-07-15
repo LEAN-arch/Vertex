@@ -73,7 +73,7 @@ def create_pareto_chart(df):
     fig.update_layout(title_text="Incident Pareto Analysis: Focusing on the Vital Few", yaxis_title="Incident Count", xaxis_title="Incident Category")
     fig.update_yaxes(title_text="Cumulative Percentage", secondary_y=True, range=[0, 101])
     return fig
-    
+
 # ==============================================================================
 # Data Loading (Cached for performance)
 # ==============================================================================
@@ -87,7 +87,7 @@ def load_all_data():
         "tco_df": get_tco_data(),
         "automation_roi": get_automation_roi_data(),
         "risk_vmp_df": get_risk_adjusted_vmp_data(),
-        "assay_impact_data": get_assay_impact_data(),
+        "assay_impact_df": get_assay_impact_data(),
         "sample_journey": get_clinical_sample_journey(),
         "systemic_risk": get_systemic_risk_insight(),
         "tickets_df": tickets_df,
@@ -200,11 +200,11 @@ elif page == "🔬 **Scientific Impact & Data Fusion**":
         fig = go.Figure(data=[go.Sankey(
             node = dict(
                 pad = 15, thickness = 20, line = dict(color = "black", width = 0.5), 
-                label = assay_data['label'], color = assay_data['color'],
+                label = assay_data['labels'], color = assay_data['colors'],
                 font=dict(color="black", size=10) # UX Fix for readability
             ),
             link = dict(
-                source = assay_data['source'], target = assay_data['target'], value = assay_data['value']
+                source = assay_data['sources'], target = assay_data['targets'], value = assay_data['values']
             )
         )])
         fig.update_layout(title_text="Instrument -> Assay -> Project Dependency Flow", font_size=10)
@@ -282,7 +282,7 @@ elif page == "👥 **Leadership & Global Alignment**":
         with col1:
             st.markdown("**West Coast vs. Global KPI Benchmark**")
             for _, row in get_global_kpis().iterrows():
-                st.metric(label=f"{row['KPI']}", value=f"{row['West Coast']}{row.get('unit','')}", delta=f"{(row['West Gist'] - row['Global Avg']):.1f}{row.get('unit','')}", help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}")
+                st.metric(label=f"{row['KPI']}", value=f"{row['West Coast']}{row.get('unit','')}", delta=f"{(row['West Coast'] - row['Global Avg']):.1f}{row.get('unit','')}", help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}")
         with col2:
             st.markdown("**Global Best Practice (Autonomous Action)**")
             st.success("**New Best Practice Deployed:**\n- **Issue:** 'Lab Printer Offline' incidents globally.\n- **Origin:** Boston DTE's proactive ping script.\n- **Action:** This practice has been autonomously tested and deployed to the West Coast monitoring system.")
