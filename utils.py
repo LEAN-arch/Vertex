@@ -127,7 +127,9 @@ def get_qms_query_result(query):
     if "CAPA" in query and "software" in query:
         site_filter = "San Diego" if "San Diego" in query else "Seattle" if "Seattle" in query else None
         df = pd.DataFrame({'CAPA ID': ['CAPA-0123', 'CAPA-0145'], 'Site':['San Diego', 'Seattle'], 'Product': ['Cologuard', 'Oncotype DX'], 'Issue': ['Software bug caused incorrect data parsing', 'UI freeze during result entry'], 'Status': ['Closed', 'Open']})
-        return df[df['Site'] == site_filter] if site_filter else df
+        if site_filter:
+            return df[df['Site'] == site_filter]
+        return df # Return all for "West Coast (Overall)"
     return pd.DataFrame({'Result': ['No matching records found for your query.']})
 
 def get_systemic_risk_insight():
@@ -181,7 +183,7 @@ def get_clinical_sample_journey():
     """Simulates the journey of a single clinical sample."""
     return pd.DataFrame({'Step': [1, 2, 3, 4, 5], 'Action': ['Sample Received', 'Prep & Aliquoting', 'PCR Amplification', 'Data Analysis', 'Result Certified'], 'System/Instrument': ['LIMS Entry Station', 'Hamilton-03 (SD)', 'QuantStudio-08 (SD)', 'Pipeline Server v2.1', 'LIMS Reporting Module'], 'Timestamp': pd.to_datetime(['2024-05-20 09:00', '2024-05-20 11:30', '2024-05-20 14:00', '2024-05-20 18:00', '2024-05-21 10:00']), 'Status': ['OK', 'OK', 'OK', 'OK', 'OK']})
 
-# Other minor utility functions remain unchanged as they are generic enough
+# These functions are placeholders for completeness, not actively used in the refined UI
 def get_strategic_alignment_data(): return pd.DataFrame()
 def get_asset_inventory_data(): return pd.DataFrame()
 def get_tech_radar_data(): return pd.DataFrame()
@@ -194,4 +196,4 @@ def generate_gxp_document(s, d): return ""
 def generate_capex_proposal(a): return ""
 def run_mitigation_simulation(s): return {}
 def run_strategic_financial_model(q): return {}
-def run_what_if_scenario(q): return "No critical project dependencies found."
+def run_what_if_scenario(q): return "No critical project dependencies found for this scenario."
