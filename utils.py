@@ -10,12 +10,11 @@ from datetime import date, timedelta, datetime
 
 def get_strategic_alignment_data():
     """Simulates data for the strategic alignment radar chart."""
-    data = { 'Strategy Pillar': ['Accelerate Discovery (Speed)', 'Ensure GxP Compliance', 'Enable New Modalities (C>)', 'Drive Operational Efficiency', 'Enhance Data Integrity'], 'DTE Focus Score': [8, 9, 7, 8, 9.5] }
-    return pd.DataFrame(data)
+    return pd.DataFrame({ 'Strategy Pillar': ['Accelerate Discovery (Speed)', 'Ensure GxP Compliance', 'Enable New Modalities (C>)', 'Drive Operational Efficiency', 'Enhance Data Integrity'], 'DTE Focus Score': [8, 9, 7, 8, 9.5] })
 
 def get_project_portfolio_data():
     """Simulates the base data for the project portfolio."""
-    data = {
+    return pd.DataFrame({
         'Project': ['SD Lab Build-out Phase II', 'LIMS Upgrade', 'NGS Data Pipeline Automation', 'Cryo-EM Data Storage Expansion', 'Lab Computer Refresh Q3', 'AR/VR Support Pilot'],
         'Strategic Impact Score': [9.5, 8, 9, 8.5, 6, 7],
         'Effort (Person-Weeks)': [150, 80, 60, 120, 40, 25],
@@ -23,8 +22,7 @@ def get_project_portfolio_data():
         'Strategic Theme': ['New Modalities', 'Compliance', 'Efficiency', 'Discovery', 'Operations', 'Innovation'],
         'Status': ['On Track', 'At Risk', 'On Track', 'On Track', 'Completed', 'On Track'],
         'Planned Finish': pd.to_datetime(['2024-12-15', '2024-07-30', '2024-09-01', '2024-11-01', '2024-05-30', '2024-08-20'])
-    }
-    return pd.DataFrame(data)
+    })
 
 def get_itsm_ticket_data():
     """Simulates ITSM ticket data from a system like ServiceNow."""
@@ -48,7 +46,7 @@ def get_tech_radar_data():
     return pd.DataFrame({'Technology': ['IoT Sensors', 'AI-driven Analytics', 'Cloud Collaboration', 'AR/VR Lab Support', 'Lab Voice Assistants', 'Robotic Process Automation (RPA)', 'Legacy LIMS'], 'Quadrant': ['Platforms', 'Techniques', 'Tools', 'Tools', 'Platforms', 'Techniques', 'Platforms'], 'r': [3.5, 2.5, 1.5, 2.8, 3.2, 1.8, 4.5], 'theta': [45, 120, 210, 300, 60, 150, 270], 'Details': ['Real-time monitoring of freezer temps and lab conditions.', 'Using ML models for predictive maintenance on instruments.', 'Using platforms like Benchling for cross-site experiment planning.', 'Using HoloLens for remote expert support during instrument repair.', 'Voice-to-text entry for ELNs to improve hands-free operation.', 'Automating routine data transfer between non-integrated systems.', 'Phasing out older, on-premise LIMS in favor of modern cloud solutions.']})
 
 def get_vmp_tracker_data():
-    """Simulates data for the Validation Master Plan Gantt chart, now with Status."""
+    """Simulates data for the Validation Master Plan Gantt chart."""
     return pd.DataFrame({'System/Instrument': [ 'New LIMS v2.0', 'SD HPLC #11', 'SEA NGS #06' ], 'Start': pd.to_datetime([ '2024-05-01', '2024-05-20', '2024-07-01' ]), 'Finish': pd.to_datetime([ '2024-08-15', '2024-06-15', '2024-08-01' ]), 'Phase': ['Validation Lifecycle', 'Qualification', 'Qualification'], 'Status': ['At Risk', 'Completed', 'On Track'], 'Validation Lead': ['J. Doe', 'A. Smith', 'L. Chen']})
 
 def get_audit_readiness_data():
@@ -86,7 +84,7 @@ def get_global_kpis():
     return pd.DataFrame({"KPI": ["System Uptime", "P1 Incident MTTR (h)", "User Satisfaction (CSAT)"], "West Coast": [99.8, 3.8, 4.6], "Global Avg": [99.7, 4.5, 4.4], "unit": ["%", "", "/5"]})
 
 def get_predictive_maintenance_data():
-    """Simulates output from the Predictive Instrument Failure ML model for the UI."""
+    """Simulates output from the Predictive Instrument Failure ML model."""
     return pd.DataFrame({'Asset ID': ['VRTX-SD-HPLC-007', 'VRTX-SEA-NGS-002', 'VRTX-SD-MS-001'], 'Instrument Type': ['Agilent HPLC', 'Illumina NovaSeq', 'Waters Mass Spec'], 'Predicted Failure Risk (%)': [85, 45, 20], 'Predicted Failure Type': ['Pump Seal Failure', 'Laser Power Degradation', 'Normal Wear'], 'Prescribed Fix': ['Replace pump seal (P/N 5063-6589)', 'Re-calibrate laser power output', 'Continue standard monitoring']})
 
 def get_capital_asset_model_data():
