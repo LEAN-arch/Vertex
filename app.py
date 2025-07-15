@@ -258,16 +258,19 @@ elif page == "💼 **Financial Intelligence & FinOps**":
         fig_quad.add_vline(x=tco_df_filtered['Uptime (%)'].mean(), line_dash="dash", annotation_text="Avg. Uptime")
         fig_quad.add_hline(y=tco_df_filtered['TCO ($k)'].mean(), line_dash="dash", annotation_text="Avg. TCO")
     st.plotly_chart(fig_quad, use_container_width=True)
-    
+
     with st.expander("Generate CapEx Proposal"):
-        selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=tco_df_filtered['Asset ID'])
-        if st.button("🤖 Generate CapEx Proposal", type="primary"):
-            asset_details = tco_df_filtered[tco_df_filtered['Asset ID'] == selected_asset_id].iloc[0]
-            with st.spinner(f"AI is drafting a proposal for {selected_asset_id}..."):
-                st.session_state.proposal = generate_capex_proposal_text(asset_details)
-        if 'proposal' in st.session_state:
-            st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
-            st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
+        if not tco_df_filtered.empty:
+            selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=tco_df_filtered['Asset ID'])
+            if st.button("🤖 Generate CapEx Proposal", type="primary"):
+                asset_details = tco_df_filtered[tco_df_filtered['Asset ID'] == selected_asset_id].iloc[0]
+                with st.spinner(f"AI is drafting a proposal for {selected_asset_id}..."):
+                    st.session_state.proposal = generate_capex_proposal_text(asset_details)
+            if 'proposal' in st.session_state:
+                st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
+                st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
+        else:
+            st.warning("No assets to display for the selected site.")
 
     st.divider()
     st.subheader("Cloud FinOps: Cost Optimization & Forecasting")
@@ -276,7 +279,7 @@ elif page == "💼 **Financial Intelligence & FinOps**":
     wasted_spend = finops_df[finops_df['Service'].isin(['EC2 (Compute)', 'S3 (Storage)']) ]['Cost ($)'].sum() * 0.15
     cost_kpi1.metric("Cloud Spend (Last 90d)", f"${finops_df['Cost ($)'].sum():,.0f}")
     cost_kpi2.metric("Est. Wasted Spend", f"${wasted_spend:,.0f}", help="Estimated cost of idle or over-provisioned resources. Target for optimization.")
-    
+
     fig_cost = px.area(finops_df, x='Date', y='Cost ($)', color='Project', title='Cloud Spend Over Time by Project')
     st.plotly_chart(fig_cost, use_container_width=True)
 
@@ -289,7 +292,7 @@ elif page == "🔬 **Scientific & Lab Operations**":
     heatmap_df = data['utilization_heatmap']
     fig_heatmap = px.imshow(heatmap_df, text_auto=True, aspect="auto", color_continuous_scale='RdYlGn_r', title=f"Instrument Group Utilization Heatmap ({site_selection})")
     st.plotly_chart(fig_heatmap, use_container_width=True)
-    
+
     st.divider()
     st.subheader("End-to-End Sample Journey & Turnaround Time (TTR)")
     sample_journey_df = data['sample_journey']
@@ -304,7 +307,7 @@ elif page == "⚙️ **Autonomous Operations**":
     op_kpi1, op_kpi2 = st.columns(2)
     pred_maint_df = data['pred_maint_data']
     op_kpi1.metric("Downtime Events Avoided (YTD)", int(pred_maint_df['Downtime Avoided (Hours)'].sum() / 8), help="Number of major downtime events (assuming 8 hours/event) prevented by predictive maintenance.")
-    
+
     mtbf_df = data['mtbf_df']
     last_mtbf = mtbf_df['MTBF (Hours)'].iloc[-1]
     prev_mtbf = mtbf_df['MTBF (Hours)'].iloc[-2]
@@ -312,12 +315,12 @@ elif page == "⚙️ **Autonomous Operations**":
 
     fig_mtbf = px.line(mtbf_df, x='Month', y='MTBF (Hours)', title='MTBF Trend (Higher is Better)', markers=True)
     st.plotly_chart(fig_mtbf, use_container_width=True)
-    
+
     with st.expander("Predictive Maintenance Workflow & Digital Twin Simulation"):
         st.subheader("Predictive Maintenance with Work Order Integration")
         pred_maint_df_filtered = filter_df_by_site(st.session_state.pred_maint_data)
         st.dataframe(pred_maint_df_filtered.style.highlight_max(subset=['Predicted Failure Risk (%)'], color='lightcoral'), use_container_width=True, hide_index=True)
-        
+
         st.subheader("Digital Twin for GxP Change Simulation")
         change_desc = st.text_input("Describe the change for simulation:", "Apply security patch KB5034122 to LIMS-PROD server")
         if st.button("🚀 Run Simulation in Digital Twin", type="primary"):
@@ -326,7 +329,6 @@ elif page == "⚙️ **Autonomous Operations**":
         if 'sim_result' in st.session_state:
             st.metric("Assessed Risk Level", st.session_state.sim_result['risk'])
             st.text_area("Simulation Impact Report", st.session_state.sim_result['impact'], height=150)
-
 
 elif page == "📋 **GxP & Audit Readiness**":
     st.header(f"📋 GxP & Audit Readiness for **{site_selection}**")
@@ -343,7 +345,7 @@ elif page == "📋 **GxP & Audit Readiness**":
     fig_risk_vmp = px.scatter(risk_vmp_df, x="Days Until Due", y="System Criticality", size="Validation Effort (Hours)", color="Status", hover_name="System/Instrument", title="Validation Priority Matrix")
     fig_risk_vmp.add_annotation(x=30, y=8, text="High Urgency/Risk Zone ->", showarrow=True, arrowhead=1)
     st.plotly_chart(fig_risk_vmp, use_container_width=True)
-    
+
     with st.expander("Interactive Audit Trail Navigator (21 CFR Part 11)"):
         living_log_df = data['living_system_log']
         query = st.text_input("Search the audit trail (e.g., \"Show actions by user 'davis_c' on LIMS-PROD\")", help="Search by user or system name.")
@@ -358,18 +360,18 @@ elif page == "👥 **Leadership & Resource Planning**":
 
     st.subheader("AI-Powered Strategic Skill Development")
     st.caption("Cross-referencing upcoming project needs with current team skills to identify and mitigate future resource gaps.")
-    
+
     team_perf_df, skills_gap = data['team_perf_df'], data['skills_gap']
-    
+
     col1, col2 = st.columns(2)
     with col1:
         st.info("**Upcoming Project Skill Demand:**\n- 'AI Drug Discovery': Advanced Python, Cloud (FinOps)\n- 'LIMS v3 Upgrade': Advanced CSV/Validation")
     with col2:
         st.warning(f"**AI-Identified Gap:** {skills_gap['gap']}\n\n**Recommendation:** {skills_gap['recommendation']}")
-    
+
     st.subheader("Team Skills Matrix")
     st.dataframe(filter_df_by_site(team_perf_df).style.applymap(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else ''))
-    
+
     st.subheader("Resource Allocation Heatmap")
     heatmap_df = data['resource_allocation_df']
     fig_heatmap = go.Figure(data=go.Heatmap(z=heatmap_df.values, x=heatmap_df.columns, y=heatmap_df.index, colorscale='RdYlGn_r'))
