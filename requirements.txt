@@ -5,3 +5,5 @@ plotly
 matplotlib
 wordcloud
 graphviz
+python-docx
+streamlit-gantt
