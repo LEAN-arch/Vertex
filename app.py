@@ -68,6 +68,8 @@ def load_all_data():
         "systemic_risk": get_systemic_risk_insight(),
         "living_system_log": get_living_system_file_log(),
         "risk_vmp_df": get_risk_adjusted_vmp_data(),
+        # BUG FIX: Restored the missing call to get_predictive_maintenance_data
+        "pred_maint_data": get_predictive_maintenance_data(),
         # 10++ Enhancement Data
         "oee_data": get_oee_data(),
         "compliance_risk": get_compliance_risk_score(),
@@ -391,7 +393,8 @@ elif page == "👥 **Leadership & Resource Planning**":
     
     st.subheader("Team Skills Matrix")
     st.caption("A current snapshot of your team's proficiency across key technology domains. Use this to inform training plans and make balanced project assignments.")
-    st.dataframe(filter_df_by_site(team_perf_df).style.applymap(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else ''))
+    # BUG FIX: Replaced deprecated .applymap() with .map() for future compatibility.
+    st.dataframe(filter_df_by_site(team_perf_df).style.map(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else None))
     
     st.subheader("Resource Allocation Heatmap")
     st.caption("This heatmap visualizes your team's workload over the next six months. It provides an at-a-glance view to identify and prevent team member burnout (red cells) and find available capacity for new tasks (green cells). This is a critical tool for effective load-balancing and sustainable high performance.")
