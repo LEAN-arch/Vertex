@@ -3,7 +3,5 @@ pandas
 numpy
 plotly
 matplotlib
-wordcloud
 graphviz
 python-docx
-streamlit-gantt
