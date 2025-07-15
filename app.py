@@ -6,7 +6,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 from utils import (
+    # All original and enhanced functions
     get_strategic_alignment_data, get_project_portfolio_data,
     get_itsm_ticket_data, get_asset_inventory_data,
     get_tech_radar_data, get_vmp_tracker_data,
@@ -14,13 +17,15 @@ from utils import (
     get_voice_of_scientist_data, get_ai_briefing,
     get_ai_root_cause, get_vendor_scorecards,
     get_team_performance, get_global_kpis,
+    # ML Module functions
     get_predictive_maintenance_data,
     get_capital_asset_model_data,
     get_project_forecast_data,
+    # 10++ Generative/Autonomous functions
     generate_gxp_document,
     generate_capex_proposal,
     run_mitigation_simulation,
-    # --- NEW: Import functions for Ultimate Functionality features ---
+    # Ultimate Functionality features
     get_self_healing_log,
     run_strategic_financial_model,
     get_autonomous_resource_recommendation,
@@ -37,9 +42,36 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# Helper Functions (No changes from previous version)
+# Helper Functions for Advanced, Actionable Visualizations
 # ==============================================================================
-# (Helper functions like create_spc_chart, create_pareto_chart would be here)
+def create_spc_chart(data, mttr_series):
+    """Creates a Statistical Process Control (SPC) chart for MTTR."""
+    mean = mttr_series.mean()
+    std_dev = mttr_series.std()
+    ucl = mean + (3 * std_dev)
+    lcl = mean - (3 * std_dev) if (mean - (3 * std_dev)) > 0 else 0
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=data.index, y=data['Ticket Count'], name='New Tickets', marker_color='#1f77b4'), secondary_y=False)
+    fig.add_trace(go.Scatter(x=mttr_series.index, y=mttr_series, name='MTTR (Hours)', mode='lines+markers', line=dict(color='#d62728')), secondary_y=True)
+    fig.add_hline(y=mean, line_dash="dash", line_color="green", annotation_text="Mean", annotation_position="bottom right", secondary_y=True)
+    fig.add_hline(y=ucl, line_dash="dot", line_color="red", annotation_text="UCL (3σ)", annotation_position="top right", secondary_y=True)
+    outliers = mttr_series[(mttr_series > ucl) | (mttr_series < lcl)]
+    fig.add_trace(go.Scatter(x=outliers.index, y=outliers, mode='markers', marker=dict(color='red', size=12, symbol='x'), name='Special Cause Variation'), secondary_y=True)
+    fig.update_layout(title_text="Service Stability SPC Chart: Volume & MTTR")
+    fig.update_yaxes(title_text="Ticket Volume", secondary_y=False)
+    fig.update_yaxes(title_text="Avg. Resolution (Hours)", secondary_y=True)
+    return fig
+
+def create_pareto_chart(df):
+    """Creates a true Pareto chart to identify the 'vital few' root causes."""
+    df = df.sort_values(by='count', ascending=False)
+    df['Cumulative Percentage'] = (df['count'].cumsum() / df['count'].sum()) * 100
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=df['Category'], y=df['count'], name='Incident Count', marker_color='#1f77b4'), secondary_y=False)
+    fig.add_trace(go.Scatter(x=df['Category'], y=df['Cumulative Percentage'], name='Cumulative %', line=dict(color='#d62728')), secondary_y=True)
+    fig.update_layout(title_text="Incident Pareto Analysis: Focusing on the Vital Few", yaxis_title="Incident Count", xaxis_title="Incident Category")
+    fig.update_yaxes(title_text="Cumulative Percentage", secondary_y=True, range=[0, 101])
+    return fig
 
 # ==============================================================================
 # Main Application
@@ -49,15 +81,14 @@ st.title("DTE Sentient Orchestration Platform: West Coast")
 st.markdown("##### Autonomous, Generative, and Self-Optimizing System for the DTE Business Architect")
 
 # --- Data Loading ---
-# (Existing data loading calls would be here)
 strategic_df = get_strategic_alignment_data()
 portfolio_df = get_project_portfolio_data()
 vmp_df = get_vmp_tracker_data()
-# --- NEW: Data loading for Ultimate features ---
 self_healing_log = get_self_healing_log()
 autonomous_rec = get_autonomous_resource_recommendation()
 lslf_log = get_living_system_file_log()
-
+cap_asset_df = get_capital_asset_model_data()
+portfolio_df = get_project_forecast_data(portfolio_df) # Augment with ML forecast
 
 # --- Tabbed Interface ---
 tab_list = ["📈 **Strategic Architecture**", "🤖 **Autonomous Operations**", "💼 **Dynamic Financial Modeling**", "🚀 **Portfolio Orchestration**", "📋 **Continuous GxP Compliance**"]
@@ -102,7 +133,6 @@ with tab2:
     st.subheader("Autonomous Reliability & Resolution Log")
     st.markdown("The platform continuously monitors the health of all GxP systems. Below is the real-time log of detected anomalies and the autonomous actions taken. The AD's role is to govern and review these automated resolutions, focusing only on exceptions.")
     
-    # Display the log of self-healing actions
     st.dataframe(self_healing_log, use_container_width=True, hide_index=True)
 
 # ==============================================================================
@@ -130,6 +160,20 @@ with tab3:
             res_col3.metric("Risk-Adjusted Portfolio NPV", f"${results['npv']}M", help="Net Present Value of the new portfolio after considering risks and rewards.")
             
             st.text_area("Generated Strategic Narrative", results['narrative'], height=200)
+
+    st.divider()
+
+    st.subheader("Generative Capital Expenditure (CapEx) Engine")
+    st.markdown("This engine transforms analysis into a board-ready proposal, elevating the AD from analyst to executive reviewer.")
+    
+    high_priority_asset = st.selectbox("Select Asset for CapEx Proposal:", cap_asset_df['Asset ID'].unique())
+    if st.button(f"✍️ Generate Full CapEx Proposal for {high_priority_asset}", use_container_width=True):
+        asset_details = cap_asset_df[cap_asset_df['Asset ID'] == high_priority_asset].to_dict('records')[0]
+        with st.spinner(f"Generating comprehensive proposal for {high_priority_asset}..."):
+            proposal = generate_capex_proposal(asset_details)
+            time.sleep(3)
+            st.text_area("Generated CapEx Proposal Draft", proposal, height=400)
+
 
 # ==============================================================================
 # TAB 4: PORTFOLIO ORCHESTRATION
