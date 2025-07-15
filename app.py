@@ -329,11 +329,11 @@ elif page == "👥 **Leadership & Alignment**":
             st.markdown(f"**{site_selection} vs. Global KPI Benchmark**")
             # ROLE MAPPING: Monitor and report on project performance using key performance indicators (KPIs)
             for _, row in data["global_kpis"].iterrows():
-                site_value = row[site_selection]
+                site_value = row[site_selection] if site_selection != "West Coast (Overall)" else row[['San Diego', 'Seattle']].mean()
                 delta_val = site_value - row['Global Avg']
                 st.metric(
                     label=f"{row['KPI']}",
-                    value=f"{site_value}{row.get('unit','')}",
+                    value=f"{site_value:.1f}{row.get('unit','')}",
                     delta=f"{delta_val:.1f}{row.get('unit','')}",
                     help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}"
                 )
