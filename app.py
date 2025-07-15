@@ -208,17 +208,19 @@ elif page == "📈 **Interactive Portfolio Modeler**":
     gantt_df = st.session_state.edited_portfolio.copy()
 
     if delay_weeks > 0 and selected_task:
-        task_idx = gantt_df.index[gantt_df['Task'] == selected_task][0]
-        original_finish = gantt_df.loc[task_idx, 'Finish']
-        gantt_df.loc[task_idx, 'Finish'] = original_finish + timedelta(weeks=delay_weeks)
-        
-        # Check for dependency impact
-        dependency_impacted = gantt_df[gantt_df['Dependencies'] == selected_task]
-        if not dependency_impacted.empty:
-            impacted_task_name = dependency_impacted.iloc[0]['Task']
-            st.error(f"**Impact Alert!** Delaying '{selected_task}' will directly impact the start date of **'{impacted_task_name}'**.")
+        task_idx_list = gantt_df.index[gantt_df['Task'] == selected_task].tolist()
+        if task_idx_list:
+            task_idx = task_idx_list[0]
+            original_finish = gantt_df.loc[task_idx, 'Finish']
+            gantt_df.loc[task_idx, 'Finish'] = original_finish + timedelta(weeks=delay_weeks)
 
-    # **BUG FIX**: Replaced non-existent streamlit-gantt with Plotly
+            # Check for dependency impact
+            dependency_impacted = gantt_df[gantt_df['Dependencies'] == selected_task]
+            if not dependency_impacted.empty:
+                impacted_task_name = dependency_impacted.iloc[0]['Task']
+                st.error(f"**Impact Alert!** Delaying '{selected_task}' will directly impact the start date of **'{impacted_task_name}'**.")
+
+    # Create Gantt chart with Plotly
     fig = px.timeline(
         gantt_df,
         x_start="Start",
@@ -286,12 +288,13 @@ elif page == "🔬 **Scientific & Lab Operations**":
         st.subheader("Reagent & Assay Impact Analysis")
         st.graphviz_chart(get_reagent_genealogy_data("R-45B-XYZ"))
         assay_data = data["assay_impact_df"]
-        fig_sankey = go.Figure(data=[go.Sankey(
-            node = dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=assay_data['labels'], color=assay_data['colors']),
-            link = dict(source=assay_data['sources'], target=assay_data['targets'], value=assay_data['values'])
-        )])
-        fig_sankey.update_layout(title_text="Instrument -> Assay -> Project Dependency Flow", font_size=10)
-        st.plotly_chart(fig_sankey, use_container_width=True)
+        if assay_data and assay_data['labels']:
+            fig_sankey = go.Figure(data=[go.Sankey(
+                node = dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=assay_data['labels'], color=assay_data['colors']),
+                link = dict(source=assay_data['sources'], target=assay_data['targets'], value=assay_data['values'])
+            )])
+            fig_sankey.update_layout(title_text="Instrument -> Assay -> Project Dependency Flow", font_size=10)
+            st.plotly_chart(fig_sankey, use_container_width=True)
 
 
 elif page == "⚙️ **Autonomous Operations**":
@@ -400,5 +403,5 @@ elif page == "👥 **Leadership & Resource Planning**":
                     delta=f"{delta_val:.1f}{row.get('unit','')}",
                     help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}"
                 )
-        else: # Handle overall view
+        else:
              st.info("Select a specific site (San Diego or Seattle) to view KPI benchmarks.")
