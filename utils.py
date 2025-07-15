@@ -107,6 +107,16 @@ def get_instrument_utilization_data():
         'Utilization (Last 7 Days %)': np.random.randint(10, 95, 6)
     })
 
+def get_resource_allocation_data(portfolio_df):
+    """
+    Generates resource allocation data for the leadership heatmap.
+    This visualizes team workload and helps prevent burnout.
+    """
+    members = portfolio_df['Assigned_To'].unique()
+    months = pd.to_datetime([date.today() + timedelta(days=30*i) for i in range(6)]).strftime('%Y-%m')
+    heatmap_data = pd.DataFrame(np.random.randint(40, 111, size=(len(members), 6)), index=members, columns=months)
+    return heatmap_data
+
 
 # ==============================================================================
 # --- Core Utility Functions (Enhanced for new KPIs) ---
