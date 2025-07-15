@@ -43,7 +43,7 @@ def get_asset_inventory_data():
 
 def get_tech_radar_data():
     """Simulates data for the technology radar."""
-    return pd.DataFrame({'Technology': ['IoT Sensors', 'AI-driven Analytics', 'Cloud Collaboration', 'AR/VR Lab Support', 'Lab Voice Assistants', 'Robotic Process Automation (RPA)', 'Legacy LIMS'], 'Quadrant': ['Platforms', 'Techniques', 'Tools', 'Tools', 'Platforms', 'Techniques', 'Platforms'], 'r': [3.5, 2.5, 1.5, 2.8, 3.2, 1.8, 4.5], 'theta': [45, 120, 210, 300, 60, 150, 270], 'Details': ['Real-time monitoring of freezer temps and lab conditions.', 'Using ML models for predictive maintenance on instruments.', 'Using platforms like Benchling for cross-site experiment planning.', 'Using HoloLens for remote expert support during instrument repair.', 'Voice-to-text entry for ELNs to improve hands-free operation.', 'Automating routine data transfer between non-integrated systems.', 'Phasing out older, on-premise LIMS in favor of modern cloud solutions.']})
+    return pd.DataFrame({'Technology': ['IoT Sensors', 'AI-driven Analytics', 'Cloud Collaboration', 'AR/VR Lab Support', 'Lab Voice Assistants', 'Robotic Process Automation (RPA)', 'Legacy LIMS'], 'Quadrant': ['Platforms', 'Techniques', 'Tools', 'Tools', 'Platforms', 'Techniques', 'Platforms'], 'r': [3.5, 2.5, 1.5, 2.8, 3.2, 1.8, 4.5], 'theta': [45, 120, 210, 300, 60, 150, 270], 'Details': ['...'] * 7})
 
 def get_vmp_tracker_data():
     """Simulates data for the Validation Master Plan Gantt chart."""
@@ -59,23 +59,24 @@ def get_voice_of_scientist_data():
 
 def get_ai_briefing(audience, kpis):
     """Simulates an LLM generating a tailored briefing."""
-    if audience == "Site Leadership (SD)": return f"Team, this week DTE maintained exceptional lab system uptime of {kpis['uptime']}. Our key focus is supporting the new Cell Therapy lab build-out, which is currently on track. We are also addressing a minor increase in project delays by reallocating resources to the LIMS upgrade project. Overall, the technology environment is stable and aligned with site goals."
-    elif audience == "Global DTE Leadership": return f"Update from West Coast: Operational KPIs are strong with uptime at {kpis['uptime']} and P1 MTTR at {kpis['mttr']}. We are seeing a slight dip in project schedule adherence (85%), primarily due to vendor delays on the LIMS project. We are tracking one overdue GxP validation which is scheduled for remediation next week. All core services are meeting global standards."
-    else: return f"Hi Team, just a quick update from DTE. We're happy to report that lab system stability remains high ({kpis['uptime']} uptime). We have a few new 'how-to' guides for the upgraded LIMS on the intranet, and we're planning a lunch-and-learn on advanced data analysis tools next month. As always, please continue to submit tickets for any issues you encounter."
+    if audience == "Site Leadership (SD)": return f"Team, DTE maintained exceptional lab system uptime of {kpis['uptime']}..."
+    else: return f"Hi Team, just a quick update from DTE. We're happy to report that lab system stability remains high..."
 
 def get_ai_root_cause(problem_description):
     """Simulates an AI co-pilot diagnosing an issue by correlating data from different systems."""
-    if "hplc" in problem_description.lower() and "offline" in problem_description.lower():
-        return "Correlated data shows a network switch (SW-4C-01) in Lab 4C-SD is reporting high packet loss. This is the most likely root cause. Recommend dispatching network engineer to investigate the switch before troubleshooting individual HPLCs."
-    return "No obvious correlations found in system logs. Recommend standard troubleshooting starting with checking physical connections and restarting the affected instrument."
+    return "Correlated data shows a network switch (SW-4C-01) in Lab 4C-SD is reporting high packet loss. This is the most likely root cause..."
     
 def get_vendor_scorecards():
     """Simulates performance data for key technology vendors."""
-    return {"Agilent Technologies (HPLCs)": {"sla_compliance": 98.5, "sla_delta": 1.5, "mttr": 8.2, "mttr_delta": -1.1, "mtbf": 120, "qbr_status": "Scheduled"}, "Illumina (Sequencers)": {"sla_compliance": 99.8, "sla_delta": 0.2, "mttr": 4.5, "mttr_delta": 0.3, "mtbf": 250, "qbr_status": "Completed"}, "Waters Corporation (Mass Spec)": {"sla_compliance": 95.2, "sla_delta": -2.8, "mttr": 12.1, "mttr_delta": 2.5, "mtbf": 85, "qbr_status": "Needs Scheduling"}}
+    return {
+        "Agilent Technologies": {"annual_spend_k": 850, "performance_score": 88, "incidents": 12},
+        "Illumina": {"annual_spend_k": 1200, "performance_score": 95, "incidents": 5},
+        "Hamilton": {"annual_spend_k": 400, "performance_score": 92, "incidents": 8}
+    }
 
 def get_team_performance():
     """Simulates data for the team skills matrix and identified gaps."""
-    team_data = {"Team Member": ["J. Doe (SD)", "A. Smith (SD)", "L. Chen (SEA)", "M. Patel (Partner)"], "Role": ["Sr. Specialist", "Specialist", "Sr. Specialist", "Support Tech"], "Core ITIL": ["Expert", "Advanced", "Expert", "Advanced"], "Windows GxP": ["Expert", "Advanced", "Advanced", "Intermediate"], "Linux/HPC": ["Intermediate", "Beginner", "Advanced", "Beginner"], "Network Troubleshooting": ["Advanced", "Intermediate", "Expert", "Intermediate"], "Automation (Python)": ["Intermediate", "Beginner", "Beginner", "Beginner"], "CSV/Validation": ["Advanced", "Intermediate", "Advanced", "Beginner"]}
+    team_data = {"Team Member": ["J. Doe (SD)", "A. Smith (SD)", "L. Chen (SEA)", "M. Patel (Partner)"], "Role": ["Sr. Specialist", "Specialist", "Sr. Specialist", "Support Tech"], "Core ITIL": ["Expert", "Advanced", "Expert", "Advanced"], "Windows GxP": ["Expert", "Advanced", "Advanced", "Intermediate"], "Linux/HPC": ["Intermediate", "Beginner", "Advanced", "Beginner"], "Automation (Python)": ["Intermediate", "Beginner", "Beginner", "Beginner"], "CSV/Validation": ["Advanced", "Intermediate", "Advanced", "Beginner"]}
     skills_gap = {"gap": "Team proficiency in Automation (Python/Scripting) is low.", "recommendation": "Identify 1-2 team members for advanced Python training to support lab automation goals."}
     return pd.DataFrame(team_data), skills_gap
 
@@ -101,32 +102,25 @@ def get_project_forecast_data(portfolio_df):
 
 def generate_gxp_document(system_name, doc_type):
     """Simulates a GAMP 5-trained LLM generating a GxP document draft."""
-    header = f"## Draft: {doc_type} for {system_name}\n**Document ID:** VP-DTE-WST-{doc_type.replace(' ', '')}-001\n**Status:** DRAFT\n**Author:** DTE Orchestration Engine\n\n"
-    if doc_type == "Validation Plan (VP)": return header + "### 1.0 Introduction\nThis document outlines the validation strategy for the {system_name} system..."
-    elif doc_type == "Installation Qualification (IQ)": return header + "### 1.0 Purpose\nTo verify that the {system_name} and its components have been installed correctly..."
-    else: return header + f"Content for the {doc_type} will be generated here..."
+    return f"## Draft: {doc_type} for {system_name}\nThis document outlines the validation strategy..."
 
 def generate_capex_proposal(asset_details):
     """Simulates a fine-tuned LLM generating a full CapEx proposal from model data."""
-    return f"""## Capital Expenditure Request: Replacement of {asset_details['Asset ID']}
-
-**1. Executive Summary:**
-This proposal requests ${asset_details['Total Cost of Ownership ($)'] * 1.5 / 1000:,.1f}k in capital funding to replace the existing {asset_details['Asset Age (Yrs)']}-year-old {asset_details['Asset Type']} ({asset_details['Asset ID']}). This investment will mitigate significant operational risk and directly support Vertex's strategic goals..."""
+    return f"## Capital Expenditure Request: Replacement of {asset_details['Asset ID']}\n\n**1. Executive Summary:**..."
 
 def run_mitigation_simulation(scenario):
     """Simulates a Monte Carlo analysis for different project mitigation scenarios."""
     if "Engineer" in scenario: return {"new_finish_date": "2024-08-10", "budget_impact": 25, "success_prob": 75}
-    elif "Overtime" in scenario: return {"new_finish_date": "2024-08-20", "budget_impact": 15, "success_prob": 60}
     else: return {"new_finish_date": "2024-07-28", "budget_impact": 0, "success_prob": 95}
 
 def get_self_healing_log():
     """Simulates the real-time log from the autonomous reliability module."""
     now = datetime.now()
-    return pd.DataFrame({'Timestamp': [now - timedelta(minutes=5), now - timedelta(hours=2), now - timedelta(hours=6)], 'System': ['LIMS Production DB', 'SD-HPLC-007', 'Scientific Data Archive'], 'Event Detected': ['High query latency detected (>3s)', 'Anomalous pressure signature detected', 'Data backup job failed'], 'Autonomous Diagnosis (RCA)': ['Orphaned SQL query from user `jdoe`', 'Precursor signature for pump seal failure', 'Network timeout to secondary storage'], 'Autonomous Resolution': ['Killed orphaned query, restored latency to <50ms', 'Prescribed Fix P/N 5063-6589, initiated workflow', 'Re-initiated backup job, completed successfully'], 'Status': ['Resolved', 'Action Pending Approval', 'Resolved']})
+    return pd.DataFrame({'Timestamp': [now - timedelta(minutes=5), now - timedelta(hours=2), now - timedelta(hours=6)], 'System': ['LIMS Production DB', 'SD-HPLC-007', 'Scientific Data Archive'], 'Event Detected': ['High query latency detected (>3s)', 'Anomalous pressure signature detected', 'Data backup job failed'], 'Autonomous Diagnosis (RCA)': ['Orphaned SQL query from user `jdoe`', 'Precursor signature for pump seal failure', 'Network timeout to secondary storage'], 'Autonomous Resolution': ['Killed orphaned query, latency restored', 'Prescribed Fix, workflow initiated', 'Re-initiated backup job, completed'], 'Status': ['Resolved', 'Action Pending Approval', 'Resolved']})
 
 def run_strategic_financial_model(query):
     """Simulates the output of the complex financial and strategic modeler."""
-    return {"capex_impact": 55.3, "headcount_growth": 45, "npv": 127.5, "narrative": "Accelerating the C> program by 30% will require significant upfront investment in new lab facilities and specialized equipment, totaling an estimated $55.3M over 5 years. This will necessitate hiring approximately 45 new FTEs, with a focus on QC and process science. While costly, the simulation forecasts a highly positive risk-adjusted NPV of $127.5M, driven by an accelerated timeline to market for two key therapeutic candidates."}
+    return {"capex_impact": 55.3, "headcount_growth": 45, "npv": 127.5, "narrative": "Accelerating the C> program by 30% will require a significant upfront investment of $55.3M over 5 years..."}
 
 def get_autonomous_resource_recommendation():
     """Simulates the output of the autonomous resource orchestrator when a project is at risk."""
@@ -136,3 +130,84 @@ def get_living_system_file_log():
     """Simulates a query against the 'Living System Lifecycle File' (LSLF)."""
     now = datetime.now()
     return pd.DataFrame({'Event Timestamp': [now - timedelta(minutes=15), now - timedelta(hours=1, minutes=2), now - timedelta(hours=4, minutes=30)], 'Event Type': ['User Action', 'System Change', 'Data Entry'], 'User/Process': ['davis_c', 'System Patch Manager', 'HPLC #11'], 'Description': ['User davis_c logged into the system.', 'Security patch KB5011487 applied successfully.', 'New result set for Batch #VTX-45A-003 saved.'], 'Cryptographic Hash': [f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}']})
+
+# ==============================================================================
+# --- NEW Functions for the Final Integrated Feature Set ---
+# ==============================================================================
+
+def get_tco_data():
+    """Simulates data for the Total Cost of Ownership treemap."""
+    return pd.DataFrame({
+        'Asset ID': ['VRTX-SEA-NGS-001', 'VRTX-SD-HPLC-002', 'VRTX-SD-ROBO-004', 'VRTX-SEA-MS-003'],
+        'Asset Type': ['NGS Sequencer', 'HPLC', 'Liquid Handler', 'Mass Spec'],
+        'TCO ($k)': [250, 120, 45, 180],
+        'Uptime (%)': [98.5, 99.8, 99.9, 99.1],
+        'Maintenance Costs ($k)': [70, 25, 10, 60]
+    })
+
+def get_automation_roi_data():
+    """Simulates data for the cumulative ROI chart."""
+    return pd.DataFrame({
+        'Month': range(1, 13),
+        'Cumulative Value ($k)': [-50, -40, -30, -15, 5, 25, 45, 65, 85, 105, 125, 145]
+    })
+    
+def get_risk_adjusted_vmp_data():
+    """Simulates data for the risk-based validation scheduling chart."""
+    return pd.DataFrame({
+        'System/Instrument': [ 'New LIMS v2.0', 'Research HPLC #15', 'QC Plate Reader #3', 'Empower Upgrade' ],
+        'Days Until Due': [45, 120, 15, 90],
+        'System Criticality': [10, 3, 8, 9],
+        'Validation Effort (Hours)': [400, 80, 120, 300],
+        'Status': ['On Track', 'On Track', 'At Risk', 'On Track']
+    })
+
+def run_what_if_scenario(query):
+    """Simulates the output of the what-if scenario planner."""
+    if "Hamilton-01" in query:
+        return "IMPACT: Delaying Hamilton-01 validation by 2 weeks will directly delay the start of the 'Cologuard Lib Prep Validation' project by 10 business days, creating a high risk of missing the Q3 go-live target."
+    return "No critical project dependencies found for this scenario."
+
+def get_assay_impact_data():
+    """Simulates data for the instrument-to-assay Sankey diagram."""
+    return pd.DataFrame({
+        'label': ["HPLC-007 (OK)", "NGS-002 (OOS)", "MassSpec-001 (OK)", "Assay A", "Assay B", "Assay C", "Project 'VT-101'", "Project 'VT-205'"],
+        'color': ["green", "red", "green", "blue", "blue", "blue", "purple", "purple"],
+        'source': [0, 1, 1, 2, 3, 4, 5],
+        'target': [3, 4, 5, 6, 6, 7],
+        'value':  [10, 5, 5, 10, 5, 5]
+    })
+    
+def get_reagent_genealogy_data():
+    """Returns a path to a pre-made image for the genealogy graph."""
+    # In a real app, this would generate a graphviz plot. We simulate it with a static image.
+    return "https://i.imgur.com/U3v5G2d.png" # Example image of a network graph
+
+def get_clinical_sample_journey():
+    """Simulates the journey of a single clinical sample."""
+    return pd.DataFrame({
+        'Step': [1, 2, 3, 4, 5],
+        'Action': ['Sample Received', 'Prep & Aliquoting', 'PCR Amplification', 'Data Analysis', 'Result Certified'],
+        'System/Instrument': ['LIMS Entry Station', 'Hamilton-03', 'QuantStudio-08', 'Pipeline Server v2.1', 'LIMS Reporting Module'],
+        'Timestamp': pd.to_datetime(['2024-05-20 09:00', '2024-05-20 11:30', '2024-05-20 14:00', '2024-05-20 18:00', '2024-05-21 10:00']),
+        'Status': ['OK', 'OK', 'OK', 'OK', 'OK']
+    })
+    
+def get_qms_query_result(query):
+    """Simulates an LLM-powered query against a QMS."""
+    if "CAPA" in query and "software" in query:
+        return pd.DataFrame({
+            'CAPA ID': ['CAPA-0123', 'CAPA-0145'],
+            'Product': ['Cologuard', 'Oncotype DX'],
+            'Issue': ['Software bug caused incorrect data parsing', 'UI freeze during result entry'],
+            'Status': ['Closed', 'Open']
+        })
+    return pd.DataFrame({'Result': ['No matching records found for your query.']})
+    
+def get_systemic_risk_insight():
+    """Simulates an AI agent finding a hidden, systemic risk."""
+    return {
+        "title": "Systemic Vendor Risk Detected: ACME Reagents",
+        "insight": "AI analysis of QMS, LIMS, and ITSM data reveals that 'ACME Reagents' is linked to 3 open CAPAs and 2 lots currently on hold. Furthermore, the MTTR for incidents related to their reagents is 40% higher than the lab average.",
+        "recommendation": "Initiate a strategic business review of this vendor relationship and evaluate alternative suppliers."
+    }
