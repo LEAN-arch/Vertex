@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from streamlit_gantt import gantt
 from datetime import timedelta
 from utils import (
     # Import all new and existing functions
@@ -36,7 +35,6 @@ if 'pred_maint_data' not in st.session_state:
     st.session_state.pred_maint_data = get_predictive_maintenance_data()
 if 'edited_portfolio' not in st.session_state:
     st.session_state.edited_portfolio = None
-
 
 # ==============================================================================
 # Helper Functions (Retained for completeness)
@@ -175,13 +173,13 @@ def filter_df_by_site(df, site_col='Site'):
 if page == "🏠 **Home Cockpit**":
     st.header(f"🏠 Home Cockpit for **{site_selection}**")
     st.caption("A high-level summary of all strategic and operational domains.")
-    
+
     col1, col2, col3 = st.columns(3)
     portfolio_df_filtered = filter_df_by_site(data["portfolio_df"])
     col1.metric("Active Projects", portfolio_df_filtered.shape[0])
     col2.metric("Projects At Risk", portfolio_df_filtered[portfolio_df_filtered['Status'] == 'At Risk'].shape[0])
     col3.metric("Pending Approvals", len(pending_items))
-    
+
     st.divider()
     st.subheader("Systemic Risk Insights")
     risk = data["systemic_risk"]
@@ -194,38 +192,43 @@ elif page == "📈 **Interactive Portfolio Modeler**":
     st.header("📈 Interactive Portfolio Modeler")
     st.caption("Simulate project delays to instantly see downstream impacts on dependencies and timelines.")
     portfolio_df = filter_df_by_site(data["portfolio_df"])
-    
+
     if st.session_state.edited_portfolio is None or st.button('Reset Simulation'):
         st.session_state.edited_portfolio = portfolio_df.copy()
 
     st.info("Select a project to simulate a delay and see the calculated impact on dependent tasks.")
-    
-    col1, col2 = st.columns([2,1])
+
+    col1, col2 = st.columns([2, 1])
     with col1:
         selected_task = st.selectbox("Select Project to Delay:", options=st.session_state.edited_portfolio['Task'])
     with col2:
         delay_weeks = st.slider("Delay (Weeks):", 0, 12, 0)
 
-    if delay_weeks > 0:
-        temp_df = st.session_state.edited_portfolio.copy()
-        task_idx = temp_df.index[temp_df['Task'] == selected_task][0]
-        
-        # Apply delay
-        original_finish = temp_df.loc[task_idx, 'Finish']
-        temp_df.loc[task_idx, 'Finish'] += timedelta(weeks=delay_weeks)
+    # Prepare DataFrame for Gantt chart
+    gantt_df = st.session_state.edited_portfolio.copy()
+
+    if delay_weeks > 0 and selected_task:
+        task_idx = gantt_df.index[gantt_df['Task'] == selected_task][0]
+        original_finish = gantt_df.loc[task_idx, 'Finish']
+        gantt_df.loc[task_idx, 'Finish'] = original_finish + timedelta(weeks=delay_weeks)
         
         # Check for dependency impact
-        dependency_impacted = temp_df[temp_df['Dependencies'] == selected_task]
+        dependency_impacted = gantt_df[gantt_df['Dependencies'] == selected_task]
         if not dependency_impacted.empty:
             impacted_task_name = dependency_impacted.iloc[0]['Task']
             st.error(f"**Impact Alert!** Delaying '{selected_task}' will directly impact the start date of **'{impacted_task_name}'**.")
 
-        # Display Gantt Chart
-        gantt_df = temp_df.rename(columns={"Task": "task", "Start": "start", "Finish": "finish"})
-        gantt("Project Portfolio Gantt", gantt_df, color_by='Site')
-    else:
-        gantt_df = st.session_state.edited_portfolio.rename(columns={"Task": "task", "Start": "start", "Finish": "finish"})
-        gantt("Project Portfolio Gantt", gantt_df, color_by='Site')
+    # **BUG FIX**: Replaced non-existent streamlit-gantt with Plotly
+    fig = px.timeline(
+        gantt_df,
+        x_start="Start",
+        x_end="Finish",
+        y="Task",
+        color="Site",
+        title="Project Portfolio Gantt"
+    )
+    fig.update_yaxes(autorange="reversed")  # To display tasks from top to bottom
+    st.plotly_chart(fig, use_container_width=True)
 
 
 elif page == "💼 **Financial Intelligence & FinOps**":
@@ -301,7 +304,6 @@ elif page == "⚙️ **Autonomous Operations**":
         st.subheader("Predictive Maintenance with Work Order Integration")
         st.info("Assets needing approval appear in the Action Center. Once approved, you can create a work order.")
         
-        # Display the dataframe with integrated button logic
         df_to_display = pred_maint_df_filtered.copy()
         
         for idx, row in df_to_display.iterrows():
@@ -398,3 +400,5 @@ elif page == "👥 **Leadership & Resource Planning**":
                     delta=f"{delta_val:.1f}{row.get('unit','')}",
                     help=f"vs. Global Average of {row['Global Avg']}{row.get('unit','')}"
                 )
+        else: # Handle overall view
+             st.info("Select a specific site (San Diego or Seattle) to view KPI benchmarks.")
