@@ -87,6 +87,18 @@ def get_mtbf_data():
     mtbf_hours = np.linspace(500, 800, 12) + np.random.normal(0, 25, 12)
     return pd.DataFrame({'Month': months, 'MTBF (Hours)': mtbf_hours.round()})
 
+# BUG FIX: Re-introducing the missing function definition
+def get_finops_data():
+    """Simulates cloud cost data."""
+    dates = pd.to_datetime([date.today() - timedelta(days=i) for i in range(90)])
+    df = pd.DataFrame({
+        'Date': np.random.choice(dates, 200),
+        'Cost ($)': np.random.rand(200) * 50 + np.linspace(10, 50, 200),
+        'Project': np.random.choice(['NGS Pipeline', 'Cryo-EM Analysis', 'AI Drug Discovery', 'Shared Infrastructure'], 200, p=[0.4, 0.3, 0.2, 0.1]),
+        'Service': np.random.choice(['EC2 (Compute)', 'S3 (Storage)', 'SageMaker (AI/ML)', 'Data Transfer'], 200, p=[0.5, 0.2, 0.2, 0.1])
+    })
+    return df.sort_values('Date')
+
 # ==============================================================================
 # --- Core Utility Functions (Enhanced for new KPIs) ---
 # ==============================================================================
