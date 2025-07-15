@@ -273,15 +273,28 @@ elif page == "💼 **Financial Intelligence & FinOps**":
 
     st.divider()
     st.subheader("Cloud FinOps: Cost Optimization & Forecasting")
-    st.caption("As scientific computing moves to the cloud, managing this variable spend is critical. This dashboard provides visibility into cloud costs by project and service, enabling you to identify waste and optimize spend.")
+    st.caption("This interactive dashboard provides a multi-dimensional view of cloud expenditures. Use it to understand not just total spend, but who is spending it and on what services, enabling targeted conversations about cost optimization.")
+    st.info("**How to use this dashboard:**\n1. Use the **Cost Composition Sunburst** to visualize the hierarchical breakdown of spend. Click on a project to drill down into the services it's consuming.\n2. Use the **Spend Trend** chart to see when cost changes occurred.\n3. **Combine the two for actionable insights.** For example, a spike in the trend chart can be cross-referenced with the sunburst to pinpoint the exact project and service responsible.")
+
     finops_df = data['finops_df']
-    cost_kpi1, cost_kpi2 = st.columns(2)
-    wasted_spend = finops_df[finops_df['Service'].isin(['EC2 (Compute)', 'S3 (Storage)']) ]['Cost ($)'].sum() * 0.15
-    cost_kpi1.metric("Cloud Spend (Last 90d)", f"${finops_df['Cost ($)'].sum():,.0f}")
-    cost_kpi2.metric("Est. Wasted Spend", f"${wasted_spend:,.0f}", help="Estimated cost of idle or over-provisioned resources. Target for optimization.")
     
-    fig_cost = px.area(finops_df, x='Date', y='Cost ($)', color='Project', title='Cloud Spend Over Time by Project')
-    st.plotly_chart(fig_cost, use_container_width=True)
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.markdown("**Cost Composition (Last 90d)**")
+        fig_sunburst = px.sunburst(
+            finops_df,
+            path=[px.Constant("All Cloud Spend"), 'Project', 'Service'],
+            values='Cost ($)',
+            title="Interactive Cost Breakdown"
+        )
+        fig_sunburst.update_traces(textinfo="label+percent parent")
+        st.plotly_chart(fig_sunburst, use_container_width=True)
+
+    with col2:
+        st.markdown("**Spend Trend by Project (Last 90d)**")
+        fig_cost = px.area(finops_df, x='Date', y='Cost ($)', color='Project', title='Cloud Spend Over Time')
+        st.plotly_chart(fig_cost, use_container_width=True)
 
 elif page == "🔬 **Scientific & Lab Operations**":
     st.header(f"🔬 Scientific & Lab Operations at **{site_selection}**")
