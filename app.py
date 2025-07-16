@@ -1,3 +1,19 @@
+# ==============================================================================
+# TROUBLESHOOTING NOTE: "inotify watch limit reached"
+# ==============================================================================
+# If you encounter an "OSError: [Errno 28] inotify watch limit reached" on a
+# Linux-based system, it means Streamlit is trying to watch more files for
+# changes than your operating system allows by default. This is common in
+# complex environments with many files (e.g., in a container or monorepo).
+#
+# TO FIX THIS, run the following command in your terminal:
+#   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+#
+# This increases the system limit and makes the change permanent.
+# Alternatively, you can run the Streamlit app with file watching disabled:
+#   streamlit run your_app.py --server.fileWatcherType none
+# ==============================================================================
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -68,7 +84,6 @@ def load_all_data():
         "systemic_risk": get_systemic_risk_insight(),
         "living_system_log": get_living_system_file_log(),
         "risk_vmp_df": get_risk_adjusted_vmp_data(),
-        # BUG FIX: Restored the missing call to get_predictive_maintenance_data
         "pred_maint_data": get_predictive_maintenance_data(),
         # 10++ Enhancement Data
         "oee_data": get_oee_data(),
@@ -144,7 +159,7 @@ def filter_df_by_site(df, site_col='Site'):
     return df.copy()
 
 # ==============================================================================
-# Page Implementations - SUBSTANTIALLY ENHANCED WITH EXPLANATIONS
+# Page Implementations
 # ==============================================================================
 
 if page == "🏠 **Home Cockpit**":
@@ -153,6 +168,8 @@ if page == "🏠 **Home Cockpit**":
 
     oee_data = data['oee_data']
     portfolio_df_filtered = filter_df_by_site(data["portfolio_df"])
+    finops_df = data['finops_df']
+    project_financials_df = data['project_financials']
 
     st.subheader("Key Performance Indicators (KPIs)")
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
@@ -165,7 +182,7 @@ if page == "🏠 **Home Cockpit**":
         st.progress(oee_data['oee'])
     with kpi2:
         at_risk_count = portfolio_df_filtered[portfolio_df_filtered['Status'] == 'At Risk'].shape[0]
-        total_count = portfolio_df_filtered.shape[0]
+        total_count = portfolio_df_filtered.shape[0] if portfolio_df_filtered.shape[0] > 0 else 1
         st.metric(
             label="📈 Portfolio Health",
             value=f"{total_count - at_risk_count} / {total_count} Projects",
@@ -182,14 +199,15 @@ if page == "🏠 **Home Cockpit**":
             help="The **Compliance Risk Score** quantifies your GxP compliance posture into a single, trendable number. It is a weighted score of deviations like overdue validations, open CAPAs, and unresolved change controls. **A lower score is better.** This metric is essential for audit readiness and internal quality reporting."
         )
     with kpi4:
-        spend = sum(fin['spend'] for fin in data['project_financials'].values())
-        budget = sum(fin['budget'] for fin in data['project_financials'].values())
+        spend = sum(fin['spend'] for fin in project_financials_df.values())
+        budget = sum(fin['budget'] for fin in project_financials_df.values())
+        burn_rate = (spend / budget) if budget > 0 else 0
         st.metric(
             label="💵 Financial Velocity",
-            value=f"{spend/budget:.1%}",
+            value=f"{burn_rate:.1%}",
             help=f"Percentage of total project budget spent (${spend:,.0f}k of ${budget:,.0f}k). Monitors burn rate against project timelines. A low velocity might indicate stalled projects, while a high velocity could signal a risk of budget overrun."
         )
-        st.progress(spend/budget)
+        st.progress(burn_rate)
 
     st.divider()
     st.subheader("Systemic Risk & AI Recommendations")
@@ -209,14 +227,21 @@ elif page == "📈 **Interactive Portfolio Modeler**":
 
     sim_col, impact_col = st.columns([2, 1])
     with sim_col:
-        selected_task = st.selectbox("Select Project to Delay:", options=st.session_state.edited_portfolio['Task'])
-        delay_weeks = st.slider("Delay (Weeks):", 0, 12, 0)
+        st.subheader("Simulation Controls")
+        if not st.session_state.edited_portfolio.empty:
+            selected_task = st.selectbox("Select Project to Delay:", options=st.session_state.edited_portfolio['Task'])
+            delay_weeks = st.slider("Delay (Weeks):", 0, 12, 0)
+        else:
+            st.warning("No portfolio data for selected site.")
+            selected_task = None
+            delay_weeks = 0
+
 
     gantt_df = st.session_state.edited_portfolio.copy()
     impact_text = ""
     cost_impact = 0
 
-    if delay_weeks > 0 and selected_task:
+    if delay_weeks > 0 and selected_task and not gantt_df.empty:
         task_row_list = gantt_df[gantt_df['Task'] == selected_task]
         if not task_row_list.empty:
             task_row = task_row_list.iloc[0]
@@ -258,18 +283,24 @@ elif page == "💼 **Financial Intelligence & FinOps**":
         fig_quad.add_vline(x=tco_df_filtered['Uptime (%)'].mean(), line_dash="dash", annotation_text="Avg. Uptime")
         fig_quad.add_hline(y=tco_df_filtered['TCO ($k)'].mean(), line_dash="dash", annotation_text="Avg. TCO")
     st.plotly_chart(fig_quad, use_container_width=True)
-    
+
     with st.expander("🤖 Generate CapEx Proposal for a 'Value Drain' Asset"):
         st.write("Select an asset (ideally from the 'Value Drains' quadrant) to automatically generate a data-driven replacement proposal.")
         if not tco_df_filtered.empty:
-            selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=tco_df_filtered['Asset ID'], key="capex_asset")
+            asset_ids = tco_df_filtered['Asset ID'].tolist()
+            selected_asset_id = st.selectbox("Select Asset for CapEx Proposal:", options=asset_ids, key="capex_asset")
             if st.button("🤖 Generate CapEx Proposal", type="primary"):
                 asset_details = tco_df_filtered[tco_df_filtered['Asset ID'] == selected_asset_id].iloc[0]
                 with st.spinner(f"AI is drafting a proposal for {selected_asset_id}..."):
-                    st.session_state.proposal = generate_capex_proposal_text(asset_details)
-            if 'proposal' in st.session_state:
-                st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
-                st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
+                    proposal_text = generate_capex_proposal_text(asset_details)
+                    st.session_state.proposal = proposal_text
+                    st.session_state.proposal_asset_id = selected_asset_id
+
+            # Display the proposal if it's generated for the currently selected asset
+            if 'proposal' in st.session_state and 'proposal_asset_id' in st.session_state:
+                if st.session_state.proposal_asset_id == selected_asset_id:
+                    st.text_area("Generated CapEx Draft:", st.session_state.proposal, height=300)
+                    st.download_button("Download as .txt", st.session_state.proposal, f"CapEx_{selected_asset_id}.txt")
         else:
             st.warning("No assets to display for the selected site.")
 
@@ -279,7 +310,7 @@ elif page == "💼 **Financial Intelligence & FinOps**":
     st.info("**How to use this dashboard:**\n1. Use the **Cost Composition Sunburst** to visualize the hierarchical breakdown of spend. Click on a project to drill down into the services it's consuming.\n2. Use the **Spend Trend** chart to see when cost changes occurred.\n3. **Combine the two for actionable insights.** For example, a spike in the trend chart can be cross-referenced with the sunburst to pinpoint the exact project and service responsible.")
 
     finops_df = data['finops_df']
-    
+
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -359,6 +390,10 @@ elif page == "📋 **GxP & Audit Readiness**":
         validated_count = risk_vmp_df[risk_vmp_df['Status'] != 'At Risk'].shape[0]
         gxp_kpi1.metric("GxP Validation Coverage", f"{validated_count / risk_vmp_df.shape[0]:.1%}", help="Percentage of GxP-critical systems currently in a validated state.")
         gxp_kpi2.metric("High-Risk Systems Due Validation (<30d)", risk_vmp_df[(risk_vmp_df['Days Until Due'] < 30) & (risk_vmp_df['System Criticality'] > 7)].shape[0])
+    else:
+        gxp_kpi1.metric("GxP Validation Coverage", "N/A", "No data for selected site")
+        gxp_kpi2.metric("High-Risk Systems Due Validation (<30d)", "N/A", "No data for selected site")
+
 
     st.subheader("Risk-Adjusted Validation Master Plan (VMP)")
     st.caption("This matrix moves beyond simple due dates to prioritize validation efforts based on **risk and criticality**. It ensures that your team's valuable time is spent on the systems that pose the greatest risk to GxP compliance and scientific outcomes if they fail. Focus on the top-right quadrant first.")
@@ -382,23 +417,37 @@ elif page == "👥 **Leadership & Resource Planning**":
 
     st.subheader("AI-Powered Strategic Skill Development")
     st.caption("Effective leadership requires not just managing the present, but preparing for the future. This module cross-references the skills required for upcoming projects with the current capabilities of your team to proactively identify and address strategic skill gaps.")
-    
+
     team_perf_df, skills_gap = data['team_perf_df'], data['skills_gap']
-    
+    team_perf_df_filtered = filter_df_by_site(team_perf_df)
+
     col1, col2 = st.columns(2)
     with col1:
         st.info("**Upcoming Project Skill Demand:**\n- 'AI Drug Discovery': Advanced Python, Cloud (FinOps)\n- 'LIMS v3 Upgrade': Advanced CSV/Validation")
     with col2:
         st.warning(f"**AI-Identified Gap:** {skills_gap['gap']}\n\n**Recommendation:** {skills_gap['recommendation']}")
-    
+
     st.subheader("Team Skills Matrix")
     st.caption("A current snapshot of your team's proficiency across key technology domains. Use this to inform training plans and make balanced project assignments.")
-    # BUG FIX: Replaced deprecated .applymap() with .map() for future compatibility.
-    st.dataframe(filter_df_by_site(team_perf_df).style.map(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else None))
-    
+    st.dataframe(team_perf_df_filtered.style.map(lambda val: 'background-color: #FFEE58' if val == 'Beginner' else None))
+
     st.subheader("Resource Allocation Heatmap")
     st.caption("This heatmap visualizes your team's workload over the next six months. It provides an at-a-glance view to identify and prevent team member burnout (red cells) and find available capacity for new tasks (green cells). This is a critical tool for effective load-balancing and sustainable high performance.")
-    heatmap_df = data['resource_allocation_df']
-    fig_heatmap = go.Figure(data=go.Heatmap(z=heatmap_df.values, x=heatmap_df.columns, y=heatmap_df.index, colorscale='RdYlGn_r'))
-    fig_heatmap.update_layout(title='Resource Allocation Forecast (%)')
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    resource_allocation_df = data['resource_allocation_df']
+
+    # Filter heatmap data based on team members at the selected site
+    if site_selection != "West Coast (Overall)":
+        site_members = team_perf_df[team_perf_df['Site'] == site_selection]['Team Member'].unique()
+        # Ensure we only try to select members that exist in the allocation dataframe
+        members_in_allocation = [member for member in site_members if member in resource_allocation_df.index]
+        if members_in_allocation:
+             resource_allocation_df = resource_allocation_df.loc[members_in_allocation]
+        else:
+            resource_allocation_df = pd.DataFrame() # create empty df if no members match
+
+    if not resource_allocation_df.empty:
+        fig_heatmap = go.Figure(data=go.Heatmap(z=resource_allocation_df.values, x=resource_allocation_df.columns, y=resource_allocation_df.index, colorscale='RdYlGn_r'))
+        fig_heatmap.update_layout(title='Resource Allocation Forecast (%)')
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    else:
+        st.warning(f"No resource allocation data available for members at the {site_selection} site.")
