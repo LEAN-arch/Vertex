@@ -82,7 +82,8 @@ def get_mtbf_data():
     MTBF is a key reliability metric. An increasing trend indicates
     improving system stability and effective maintenance.
     """
-    months = pd.date_range(end=date.today(), periods=12, freq='M').strftime('%Y-%m')
+    # FIX: Changed deprecated freq='M' to 'ME' (Month End) to resolve FutureWarning.
+    months = pd.date_range(end=date.today(), periods=12, freq='ME').strftime('%Y-%m')
     # Positive trend: increasing MTBF is good.
     mtbf_hours = np.linspace(500, 800, 12) + np.random.normal(0, 25, 12)
     return pd.DataFrame({'Month': months, 'MTBF (Hours)': mtbf_hours.round()})
@@ -191,20 +192,50 @@ def generate_weekly_briefing_text(site, data):
     accomplishments = "- **Project Advancement:** 'LIMS Upgrade' project health score improved from 45% to 65% after resource allocation.\n- **Operational Stability:** Maintained 99.8% uptime across all critical lab systems."
     risks = f"- **Systemic Vendor Risk:** Continue to monitor 'ACME Reagents' performance as per active QMS insight.\n- **Project Risk:** {at_risk_projects} project(s) currently classified as 'At Risk'. See portfolio for details."
     kpi_summary = "KPI Data Not Available"
-    if site in data['global_kpis'].columns:
-        kpi_summary = f"- **System Uptime:** {data['global_kpis'].loc[0, site]:.1f}% (Global: {data['global_kpis'].loc[0, 'Global Avg']}%)\n- **MTTR (P1 Incidents):** {data['global_kpis'].loc[1, site]:.1f}h (Global: {data['global_kpis'].loc[1, 'Global Avg']}h)"
-    return f"# DTE West Coast - Weekly Leadership Briefing\n**Site:** {site}\n**Date:** {date.today().strftime('%Y-%m-%d')}\n---\n### 1. Executive Summary\nThis week, the DTE team focused on mitigating risks for the 'LIMS Upgrade' project while maintaining exceptional operational stability. Proactive measures in predictive maintenance have prevented potential downtime, and we continue to track key vendor performance closely.\n### 2. Key Accomplishments\n{accomplishments}\n### 3. Risks & Mitigations\n{risks}\n### 4. KPI Benchmark\n{kpi_summary}"
+    if 'global_kpis' in data and site in data['global_kpis'].columns:
+        kpi_data = data['global_kpis']
+        kpi_summary = f"- **System Uptime:** {kpi_data.loc[0, site]:.1f}% (Global: {kpi_data.loc[0, 'Global Avg']}%)\n- **MTTR (P1 Incidents):** {kpi_data.loc[1, site]:.1f}h (Global: {kpi_data.loc[1, 'Global Avg']}h)"
+    return f"""# DTE West Coast - Weekly Leadership Briefing
+**Site:** {site}
+**Date:** {date.today().strftime('%Y-%m-%d')}
+---
+### 1. Executive Summary
+This week, the DTE team focused on mitigating risks for the 'LIMS Upgrade' project while maintaining exceptional operational stability. Proactive measures in predictive maintenance have prevented potential downtime, and we continue to track key vendor performance closely.
+### 2. Key Accomplishments
+{accomplishments}
+### 3. Risks & Mitigations
+{risks}
+### 4. KPI Benchmark
+{kpi_summary}"""
 
 def generate_capex_proposal_text(asset_details):
     """Generates a full CapEx proposal draft."""
-    return f"# Capital Expenditure Request: Replacement of {asset_details['Asset ID']}\n**Date:** {date.today().strftime('%Y-%m-%d')}\n**Requesting Dept:** DTE West Coast\n---\n### 1. Executive Summary\nThis proposal requests capital funds for the replacement of asset **{asset_details['Asset ID']} ({asset_details['Asset Type']})**. The existing asset has become a significant operational and financial drain, with an uptime of only **{asset_details['Uptime (%)']:.1f}%**, a high Total Cost of Ownership of **${asset_details['TCO ($k)']}k**, and **{asset_details['Incident Count (L12M)']}** incidents in the last 12 months. Replacement is critical to ensure scientific continuity and reduce operational risk.\n### 2. Business Justification\nThe current asset's poor reliability directly impacts scientific workflows that depend on it. The high frequency of incidents consumes valuable DTE support hours and delays research. A modern replacement will offer higher throughput, greater reliability, and lower maintenance overhead.\n### 3. Financial Analysis\n- **Current TCO (Annualized):** ${asset_details['TCO ($k)']}k\n- **Estimated New Asset Cost:** $150k (Quote from Vendor XYZ)\n- **Projected New Asset TCO:** $30k\n- **Payback Period:** Approx. 18 months\n### 4. Proposed Solution\nWe recommend the purchase of the 'VendorXYZ Model 2.0', which is the current industry standard and compatible with our existing infrastructure.\n### 5. Appendix\n- Incident History Log for {asset_details['Asset ID']}\n- Quote from VendorXYZ"
+    return f"""# Capital Expenditure Request: Replacement of {asset_details['Asset ID']}
+**Date:** {date.today().strftime('%Y-%m-%d')}
+**Requesting Dept:** DTE West Coast
+---
+### 1. Executive Summary
+This proposal requests capital funds for the replacement of asset **{asset_details['Asset ID']} ({asset_details['Asset Type']})**. The existing asset has become a significant operational and financial drain, with an uptime of only **{asset_details['Uptime (%)']:.1f}%**, a high Total Cost of Ownership of **${asset_details['TCO ($k)']}k**, and **{asset_details['Incident Count (L12M)']}** incidents in the last 12 months. Replacement is critical to ensure scientific continuity and reduce operational risk.
+### 2. Business Justification
+The current asset's poor reliability directly impacts scientific workflows that depend on it. The high frequency of incidents consumes valuable DTE support hours and delays research. A modern replacement will offer higher throughput, greater reliability, and lower maintenance overhead.
+### 3. Financial Analysis
+- **Current TCO (Annualized):** ${asset_details['TCO ($k)']}k
+- **Estimated New Asset Cost:** $150k (Quote from Vendor XYZ)
+- **Projected New Asset TCO:** $30k
+- **Payback Period:** Approx. 18 months
+### 4. Proposed Solution
+We recommend the purchase of the 'VendorXYZ Model 2.0', which is the current industry standard and compatible with our existing infrastructure.
+### 5. Appendix
+- Incident History Log for {asset_details['Asset ID']}
+- Quote from VendorXYZ"""
 
 def run_digital_twin_simulation(change_description):
     """Simulates running a change in a digital twin environment."""
-    if "patch" in change_description.lower():
+    change_desc_lower = change_description.lower()
+    if "patch" in change_desc_lower:
         risk = "Low"
         impact = "No performance degradation detected. All connectivity tests passed."
-    elif "update" in change_description.lower():
+    elif "update" in change_desc_lower or "upgrade" in change_desc_lower:
         risk = "Medium"
         impact = "Minor (5%) increase in query latency detected. Recommended to proceed with monitoring."
     else:
@@ -214,35 +245,23 @@ def run_digital_twin_simulation(change_description):
 
 def search_audit_log(log_df, query):
     """Simulates a simple natural language search on the audit log."""
-    query = query.lower()
+    query_lower = query.lower()
     filtered_df = log_df.copy()
-    if "user" in query:
+    if "user" in query_lower:
         try:
-            user = query.split("user")[-1].split("'")[1].strip()
+            # Extract username, which might be in quotes
+            user = query_lower.split("user")[-1].split("'")[1].strip() if "'" in query_lower else query_lower.split("user")[-1].strip().split(" ")[-1]
             filtered_df = filtered_df[filtered_df['User/Process'].str.contains(user, case=False)]
-        except IndexError: pass
-    if "system" in query:
+        except IndexError:
+            pass # Ignore if parsing fails
+    if "system" in query_lower:
         try:
-            system = query.split("system")[-1].strip().upper().split(" ")[0]
+             # Extract system name, assuming it follows "on" or "system"
+            system = query_lower.split(" on ")[-1].strip().upper().split(" ")[0] if " on " in query_lower else query_lower.split("system")[-1].strip().upper().split(" ")[0]
             filtered_df = filtered_df[filtered_df['System'].str.contains(system, case=False)]
-        except IndexError: pass
+        except IndexError:
+            pass # Ignore if parsing fails
     return filtered_df
-
-def get_itsm_ticket_data():
-    today = date.today()
-    dates = pd.to_datetime([today - timedelta(days=i) for i in range(60)])
-    data = {'Ticket ID': [f'INC{12345+i}' for i in range(100)] + [f'REQ{54321+i}' for i in range(100)],
-            'Date': np.random.choice(dates, 200),
-            'Site': np.random.choice(['San Diego', 'Seattle'], 200, p=[0.6, 0.4]),
-            'Category': np.random.choice(['Instrument Connectivity', 'Software Login', 'Data Access', 'Printer Issue', 'New Software Request', 'Performance Lag', 'Hardware Failure'], 200, p=[0.3, 0.2, 0.15, 0.1, 0.1, 0.1, 0.05]),
-            'Priority': np.random.choice(['P1 - Critical', 'P2 - High', 'P3 - Medium', 'P4 - Low'], 200, p=[0.05, 0.15, 0.5, 0.3]),
-            'Type': ['Incident']*100 + ['Request']*100}
-    tickets_df = pd.DataFrame(data).sort_values(by='Date')
-    base_mttr = np.random.uniform(2, 6, size=len(dates))
-    spike_indices = np.random.choice(len(dates), 4, replace=False)
-    base_mttr[spike_indices] = [9.2, 9.5, 10.1, 8.9]
-    mttr_data = pd.Series(base_mttr, index=dates).reindex(pd.to_datetime(tickets_df['Date'].unique()), method='pad')
-    return tickets_df, mttr_data
 
 def get_global_kpis():
     return pd.DataFrame({"KPI": ["System Uptime", "P1 Incident MTTR (h)", "User Satisfaction (CSAT)"], "San Diego": [99.6, 4.1, 4.5], "Seattle": [99.9, 3.5, 4.7], "Global Avg": [99.7, 4.5, 4.4], "unit": ["%", "", "/5"]})
@@ -263,23 +282,12 @@ def get_clinical_sample_journey():
     start_time = datetime(2024, 5, 20, 9, 0)
     return pd.DataFrame({'Step': [1, 2, 3, 4, 5], 'Action': ['Sample Received', 'Prep & Aliquoting', 'PCR Amplification', 'Data Analysis', 'Result Certified'], 'System/Instrument': ['LIMS Entry Station', 'Hamilton-03 (SD)', 'QuantStudio-08 (SD)', 'Pipeline Server v2.1', 'LIMS Reporting Module'], 'Timestamp': [start_time, start_time + timedelta(hours=2.5), start_time + timedelta(hours=5), start_time + timedelta(hours=9), start_time + timedelta(hours=25)], 'Status': ['OK', 'OK', 'OK', 'OK', 'OK']})
 
-def get_qms_query_result(query):
-    if "CAPA" in query and "software" in query:
-        site_filter = "San Diego" if "San Diego" in query else "Seattle" if "Seattle" in query else None
-        df = pd.DataFrame({'CAPA ID': ['CAPA-0123', 'CAPA-0145'], 'Site': ['San Diego', 'Seattle'], 'Product': ['Cologuard', 'Oncotype DX'], 'Issue': ['Software bug caused incorrect data parsing', 'UI freeze during result entry'], 'Status': ['Closed', 'Open']})
-        if site_filter: return df[df['Site'] == site_filter]
-        return df
-    return pd.DataFrame({'Result': ['No matching records found for your query.']})
-
 def get_systemic_risk_insight():
     return {"title": "Systemic Vendor Risk Detected: ACME Reagents (Impacting San Diego)", "insight": "AI analysis of QMS, LIMS, and ITSM data reveals that 'ACME Reagents' is linked to 2 open CAPAs at the San Diego site. Furthermore, the MTTR for incidents related to their reagents is 40% higher than the lab average at that site.", "recommendation": "Initiate a strategic business review of this vendor relationship and evaluate alternative suppliers for the San Diego labs."}
 
 def get_living_system_file_log():
     now = datetime.now()
     return pd.DataFrame({'Event Timestamp': [now - timedelta(minutes=15), now - timedelta(hours=1, minutes=2), now - timedelta(hours=4, minutes=30), now - timedelta(days=1)], 'System': ['LIMS-PROD', 'LIMS-PROD', 'HPLC-SD-011', 'LIMS-PROD'], 'User/Process': ['davis_c', 'System Patch Manager', 'hplc_instrument_svc', 'davis_c'], 'Description': ['User davis_c logged into the system.', 'Security patch KB5011487 applied successfully.', 'New result set for Batch #VTX-45A-003 saved.', 'User davis_c changed sample status.'], 'Cryptographic Hash': [f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}', f'0x{np.random.randint(1e15, 1e16-1):x}']})
-
-def get_automation_roi_data():
-    return pd.DataFrame({'Month': range(1, 13), 'Cumulative Value ($k)': [-50, -40, -30, -15, 5, 25, 45, 65, 85, 105, 125, 145]})
 
 def get_risk_adjusted_vmp_data():
     return pd.DataFrame({'System/Instrument': ['New LIMS v2.0', 'Research HPLC #15', 'QC Plate Reader #3', 'Empower Upgrade'], 'Site': ['San Diego', 'San Diego', 'Seattle', 'Seattle'], 'Days Until Due': [45, 120, 15, 90], 'System Criticality': [10, 3, 8, 9], 'Validation Effort (Hours)': [400, 80, 120, 300], 'Status': ['On Track', 'On Track', 'At Risk', 'On Track']})
